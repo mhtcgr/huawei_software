@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-const int n = 200;
+const int n = 210;
 const int robot_num = 10;
 const int berth_num = 10;
 const int N = 210;

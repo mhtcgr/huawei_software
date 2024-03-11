@@ -6,87 +6,174 @@ const int robot_num = 10;
 const int berth_num = 10;
 const int N = 210;
 
-class Robot {
+class Cargo{
 public:
-    int x, y, goods;//goodsè¡¨ç¤ºæ˜¯å¦æºå¸¦ç‰©å“
-    int status;
-    int mbx, mby;//ä¸‹ä¸€æ­¥çš„ä½ç½®
+    int value;
+    int x, y, xb, yb; //xb,ybÎªÄ¿±ê²´Î»µÄ×ø±ê
+    int time;
+    Cargo():xb(-1),yb(-1),time(-1){}; //³õÊ¼»¯²´Î»×ø±êÎª£¨-1£¬-1, ¿É´æÔÚÊ±¼äÎª-1
 
-    Robot() {}
-    Robot(int startX, int startY):x(startX),y(startY) {}
-};
-Robot robot[robot_num + 10];
+    int findBerth();
+}cargos[N][N];
 
-class Good {
+class Robot{
 public:
-    int x,y,val;
-    int last_frame;//è¿˜å‰©å¤šå°‘å¸§
-    Good() {}
-    Good(int startX, int startY):x(startX),y(startY),last_frame(1000) {}
-};
-//å»ºç«‹ä¸€ä¸ªä»¥valä¸ºæ¯”è¾ƒå€¼çš„æœ€å¤§ä¼˜å…ˆé˜Ÿåˆ—ï¼Œä»æœ€å¤§çš„å¼€å§‹ï¼ŒæŸ¥è¯¢æœ€è¿‘çš„æ²¡æœ‰æ‹¿ç‰©å“çš„æœºå™¨äººï¼Œè®©è¿™ä¸ª
-//æœºå™¨äººæœè‡ªå·±çš„è¿™ä¸ªæ–¹å‘è¿åŠ¨ã€‚
+    int id;
+    int cargoValue;
+    int x, y;
+    int carryState;
+    int targetBerth;
+    int targetCargo;
+    int movingState;
 
-class Berth {
+    //Ò»Ğ©³õÊ¼»¯
+    Robot():id(-1),cargoValue(0),carryState(0),targetBerth(-1),targetCargo(-1),movingState(1) {}
+
+    void collisionDetection();
+
+    void move();
+
+    int plan();
+
+    void get();
+
+    void pull();
+
+    int findCargo();
+
+}robots[robot_num + 10];
+
+class Berth{
 public:
+    int id;
     int x;
     int y;
+    int boats[5]={-1,-1,-1,-1,-1}; //ÎŞ´¬ÔòÎª-1
     int transport_time;
     int loading_speed;
+    int cargoNum;
+    Berth():cargoNum(0){};
 
-    Berth(){}
-    Berth(int x, int y, int transport_time, int loading_speed) {
-        this -> x = x;
-        this -> y = y;
-        this -> transport_time = transport_time;
-        this -> loading_speed = loading_speed;
-    }
-};
-Berth berth[berth_num + 10];
-class Boat {
+}berths[berth_num + 10];
+
+class Boat{
 public:
-    int num, pos, status;
-};
-Boat boat[10];
+    int capacity;
+    int cargoNum;
+    int id;
+    int targetBerth;
+    int state;
+    Boat():cargoNum(0),targetBerth(-2),state(1){}; //Ä¿±ê²´Î»Îª-2±íÊ¾µ±Ç°Îª³õÊ¼×´Ì¬£¬ÎŞÄ¿±ê(ÒòÎª-1±íÊ¾ĞéÄâµã£©
 
-int money, boat_capacity, id;//idæ˜¯å¸§åºå·ï¼ˆä» 1 å¼€å§‹é€’å¢ï¼‰
-char ch[N][N];
-int gds[N][N];
+    void ship();
+
+    void go();
+}boats[10];
+
+class Gird{
+public:
+    char type;
+    int robotId;
+    Gird():robotId(-1){}; //-1±íÊ¾ÎŞ»úÆ÷ÈË
+
+}Map[n][n];
+
+
+int money, boat_capacity, id;
+
 void Init()
 {
-    for(int i = 1; i <= n; i ++)
-        scanf("%s", ch[i] + 1);
-    for(int i = 0; i < berth_num; i ++)
-    {//æ³Šä½
-        int id;
-        scanf("%d", &id);
-        scanf("%d%d%d%d", &berth[id].x, &berth[id].y, &berth[id].transport_time, &berth[id].loading_speed);
+    char line[N];
+    for(int i = 0; i < n; i ++){
+        scanf("%s", line); //µØÍ¼ÊäÈë
+        //std::printf(line);
+        for(int j=0;j<n;j++){
+            switch (line[j]) {
+                case 'B':{
+                    Map[i][j].type='B';
+                    break;
+                }
+                case 'A':{
+                    Map[i][j].type='A';
+                    break;
+                }
+                case '.':{
+                    Map[i][j].type='.';
+                    break;
+                }
+                case '*':{
+                    Map[i][j].type='*';
+                    break;
+                }
+                case '#':{
+                    Map[i][j].type='#';
+                    break;
+                }
+
+                default:break;
+
+            }
+        }
     }
-    scanf("%d", &boat_capacity);
+        
+        
+    for(int i = 0; i < berth_num; i ++)
+    {
+        int id; //¸Û¿Úid
+        scanf("%d", &id);
+        berths[id].id=id;
+        //¸Û¿ÚµÄ×ø±ê£¬ÔËÊäµ½ĞéÄâµãµÄÊ±¼ä£¬×°ÔØËÙ¶È
+        scanf("%d%d%d%d", &berths[id].x, &berths[id].y, &berths[id].transport_time, &berths[id].loading_speed);
+    }
+
+    //³õÊ¼»¯´¬µÄÊôĞÔ
+    scanf("%d", &boat_capacity); //´¬µÄÈİÁ¿
+    for(int i=0;i<5;i++){
+        boats[i].capacity=boat_capacity;
+        boats[i].id=i;
+    }
+
+    //³õÊ¼»¯»úÆ÷ÈËµÄid
+    for(int i =0;i<10;i++){
+        robots[i].id=i;
+    }
     char okk[100];
     scanf("%s", okk);
     printf("OK\n");
     fflush(stdout);
 }
 
-int Input()
-{//è¾“å…¥
-    scanf("%d%d", &id, &money);
-    int num;//æ–°å¢è´§ç‰©çš„æ•°é‡
+int Input(){
+    scanf("%d%d", &id, &money); //Ö¡ĞòºÅ£¬µ±Ç°½ğÇ®Êı
+
+    int num; //ĞÂÔöµÄ»õÎïÁ¿
     scanf("%d", &num);
-    for(int i = 1; i <= num; i ++)
+    for(int i = 0; i < num; i ++)
     {
-        int x, y, val;
-        scanf("%d%d%d", &x, &y, &val);
-        //æŠŠè¿™äº›å€¼æ”¾åˆ°è´§ç‰©å¯¹è±¡é‡Œé¢
+        int x,y,v;
+        scanf("%d%d%d", &x,&y,&v);  //»õÎïµÄ×ø±êºÍ½ğ¶î
+        cargos[x][y].x=x;
+        cargos[x][y].y=y;
+        cargos[x][y].value=v;
+        cargos[x][y].time=1000;
     }
+
+    //ÕâÀïĞèÒª±éÀú»õÎï£¬Éú´æÊ±¼ä¼õÒ»£¬ÕÒ²´Î»
+
+    //½ÓÏÂÀ´10ĞĞrobotÊı¾İ
     for(int i = 0; i < robot_num; i ++)
     {
-        int sts;//çŠ¶æ€
-        scanf("%d%d%d%d", &robot[i].goods, &robot[i].x, &robot[i].y, &sts);
+        //ÊÇ·ñĞ¯´øÎïÆ·£¬×ø±ê£¬×´Ì¬£¨»Ö¸´×´Ì¬»¹ÊÇÕı³£×´Ì¬£©
+        scanf("%d%d%d%d", &robots[i].carryState, &robots[i].x, &robots[i].y, &robots[i].movingState);
+        //°Ñ»úÆ÷ÈËµÄid±ê×¢µ½µØÍ¼ÉÏ
+        Map[robots[i].x][robots[i].y].robotId=i;
     }
+    
+    //½ÓÏÂÀ´5ĞĞboatÊı¾İ
     for(int i = 0; i < 5; i ++)
-        scanf("%d%d\n", &boat[i].status, &boat[i].pos);
+        //´¬µÄ×´Ì¬£¨ÔËÊäÖĞ£¬Õı³£×´Ì¬£¬²´Î»ÍâµÈ´ı×´Ì¬£©£¬Ä¿±ê²´Î»
+        scanf("%d%d\n", &boats[i].state, &boats[i].targetBerth);
+
     char okk[100];
     scanf("%s", okk);
     return id;
@@ -98,10 +185,8 @@ int main()
     for(int zhen = 1; zhen <= 15000; zhen ++)
     {
         int id = Input();
-        for(int i = 0; i < robot_num; i ++) {
-            //printf("move %d %d\n", i, rand() % 4);
-            //è¾“å‡ºæœºå™¨äººçš„åŠ¨ä½œ
-        }
+        for(int i = 0; i < robot_num; i ++)
+            printf("move %d %d\n", i, rand() % 4);
         puts("OK");
         fflush(stdout);
     }

@@ -48,13 +48,21 @@ public:
     int id;
     int x;
     int y;
-    int boats[5]={-1,-1,-1,-1,-1}; //无船则为-1
+    int waitingBoatNum;
+    int boatsIn[5]={-1,-1,-1,-1,-1}; //无船则为-1
     int transport_time;
     int loading_speed;
     int cargoNum;
     Berth():cargoNum(0){};
+    void receive(int boatId);
+
+    void lose(int boatId);
+
+    void load();
 
 }berths[berth_num + 10];
+
+
 
 class Boat{
 public:
@@ -63,12 +71,128 @@ public:
     int id;
     int targetBerth;
     int state;
-    Boat():cargoNum(0),targetBerth(-2),state(1){}; //目标泊位为-2表示当前为初始状态，无目标(因为-1表示虚拟点）
+    int shippingTime;
+    Boat():cargoNum(0),targetBerth(-1),state(1){};
+
+    void moveAFrame();
+
+    void action();
 
     void ship();
 
     void go();
+
+    double value(int,int,int,int);
 }boats[10];
+void Boat::moveAFrame() {
+    if(shippingTime>0){
+        shippingTime--;
+        if(shippingTime==0){
+            if(targetBerth>=0){ //到达泊位
+                berths[targetBerth].receive(Boat::id);
+            }
+            else{ //到达vp
+                //ship();
+            }
+        }
+    }
+}
+
+void Boat::action() {
+    if (state == 1) { //available
+        if (targetBerth == -1) { //at a vp
+            ship();
+            //state=0;
+        }
+        else { //at a berth
+            Berth* berth=&berths[targetBerth];
+            for(int i=0;i<berth->waitingBoatNum;i++){
+                if(berth->boatsIn[i]==Boat::id){
+                    if (cargoNum == capacity){
+                        go();
+                        berths[targetBerth].lose(Boat::id);
+                        //state=0;
+                    }
+                    return;
+                }
+            }
+            berth->receive(Boat::id);
+        }
+    }
+}
+
+void Boat::ship() {
+    double v=0;
+    int targetBerth=-1;
+    int transportTime;
+    int loadingSpeed;
+    int cargoNum;
+    int waitingBoatNum;
+
+    for(int i=0;i<10;i++){
+        transportTime=berths[i].transport_time;
+        loadingSpeed=berths[i].loading_speed;
+        cargoNum=berths[i].cargoNum;
+        waitingBoatNum=berths[i].waitingBoatNum;
+
+        double v_=value(transportTime,loadingSpeed,cargoNum,waitingBoatNum);
+        if(v_>v){
+            v=v_;
+            targetBerth=i;
+            shippingTime=berths[targetBerth].transport_time;
+        }
+    }
+
+    cout<<"ship "<<Boat::id<<" "<<targetBerth<<endl;
+
+}
+
+double Boat::value(int transportTime, int loadingSpeed, int cargoNum, int waitingBoatNum) {
+    if(cargoNum>capacity){
+        cargoNum=capacity;
+    }
+    return
+            (loadingSpeed+cargoNum)/(transportTime*(waitingBoatNum+1));
+}
+
+void Boat::go() {
+    cout<<"go "<<Boat::id<<endl;
+}
+
+
+void Berth::load() {
+    if(waitingBoatNum>0){
+        Boat* boat=&boats[boatsIn[0]];
+        int canLoadNum=cargoNum>=loading_speed ? loading_speed : cargoNum;
+        if(boat->capacity-boat->cargoNum>=canLoadNum){
+            boat->cargoNum+=canLoadNum;
+            cargoNum-=canLoadNum;
+        }
+        else{
+            cargoNum-=(boat->capacity-boat->cargoNum);
+            boat->cargoNum=boat->capacity;
+        }
+    }
+}
+
+void Berth::receive(int boatId) {
+    waitingBoatNum++;
+    boatsIn[waitingBoatNum-1]=boatId;
+
+//    if(waitingBoatNum>1){
+//        boats[boatId].state=2;
+//    }
+}
+
+void Berth::lose(int boatId) {
+    //boats[boatsIn[0]].state=0;
+    waitingBoatNum--;
+    for(int i=1;i<=waitingBoatNum;i++){
+        boatsIn[i-1]=boatsIn[i];
+    }
+    boatsIn[waitingBoatNum]=-1;
+    //boats[boatsIn[0]].state=1;
+}
 
 class Gird{
 public:
@@ -77,7 +201,6 @@ public:
     Gird():robotId(-1){}; //-1表示无机器人
 
 }Map[n][n];
-
 
 int money, boat_capacity, id;
 
@@ -115,8 +238,8 @@ void Init()
             }
         }
     }
-        
-        
+
+
     for(int i = 0; i < berth_num; i ++)
     {
         int id; //港口id
@@ -168,11 +291,17 @@ int Input(){
         //把机器人的id标注到地图上
         Map[robots[i].x][robots[i].y].robotId=i;
     }
-    
+
     //接下来5行boat数据
-    for(int i = 0; i < 5; i ++)
+    for(int i = 0; i < 5; i ++) {
         //船的状态（运输中，正常状态，泊位外等待状态），目标泊位
         scanf("%d%d\n", &boats[i].state, &boats[i].targetBerth);
+        boats[i].action();
+    }
+
+    for(int i = 0;i<10;i++){
+        berths[i].load();
+    }
 
     char okk[100];
     scanf("%s", okk);

@@ -9,12 +9,41 @@ const int N = 210;
 class Cargo{
 public:
     int value;
-    int x, y, xb, yb; //xb,ybÎªÄ¿±ê²´Î»µÄ×ø±ê
+    int x, y, idb; //xb,ybä¸ºç›®æ ‡æ³Šä½çš„åæ ‡
     int time;
-    Cargo():xb(-1),yb(-1),time(-1){}; //³õÊ¼»¯²´Î»×ø±êÎª£¨-1£¬-1, ¿É´æÔÚÊ±¼äÎª-1
-
+    Cargo():value(-1),x(-1),y(-1),idb(-1),time(-1){}; //åˆå§‹åŒ–æ³Šä½åæ ‡ä¸ºï¼ˆ-1ï¼Œ-1, å¯å­˜åœ¨æ—¶é—´ä¸º-1
+    
     int findBerth();
-}cargos[N][N];
+}
+
+int Cargo::findBerth(){//evaluation function for each berth
+    //parameter for each evaluating dimension
+    int a = 1;//pace to berth
+    int b = 1;//loading time
+    int c = 1;//berth time
+    int d = 1;//todo:shipnum
+    int result = 0;
+    int steps = 0;//pace to berth by robot plan
+    int max = 0;
+    int targetid = 0;
+    for (size_t i = 0; i < berth_num; i++)
+    {
+        int loadtime = berths[i].cargoNum/berths[i].loading_speed;//todo:cargonum after steps
+
+        if(loadtime <= steps){
+            result = a*steps+c*berths[i].transport_time;
+        }else{
+            result = a*steps+b*(loadtime-steps)+c*berths[i].transport_time;
+        }
+
+        if(max < result){
+            max = result;
+            targetid = i;
+        }
+    }
+    return targetid;
+    
+}
 
 class Robot{
 public:
@@ -23,10 +52,11 @@ public:
     int x, y;
     int carryState;
     int targetBerth;
-    int targetCargo;
+    int targetCargox;
+    int targetCargoy;
     int movingState;
 
-    //Ò»Ğ©³õÊ¼»¯
+    //ä¸€äº›åˆå§‹åŒ–
     Robot():id(-1),cargoValue(0),carryState(0),targetBerth(-1),targetCargo(-1),movingState(1) {}
 
     void collisionDetection();
@@ -35,13 +65,35 @@ public:
 
     int plan();
 
-    void get();
+    void get();//cargo position
 
-    void pull();
+    void pull(int id);
 
     int findCargo();
 
 }robots[robot_num + 10];
+
+void Robot::get(){
+    
+    Map[this->targetCargox][this->targetCargoy].type = '.';
+
+    this->cargoValue = cargos[this->targetCargox][this->targetCargoy].value;
+    this->carryState = 1;
+    this->targetBerth = cargos[this->targetCargox][this->targetCargoy]->idb;
+
+    delete cargos[this->targetCargox][this->targetCargoy];
+
+}
+
+void Robot::pull(int id){
+
+    berths[id].cargoNum++;
+
+    this->cargoValue = 0;
+    this->carryState = 0;
+    this->targetBerth = -1;
+
+}
 
 class Berth{
 public:
@@ -49,7 +101,7 @@ public:
     int x;
     int y;
     int waitingBoatNum;
-    int boatsIn[5]={-1,-1,-1,-1,-1}; //ÎŞ´¬ÔòÎª-1
+    int boatsIn[5]={-1,-1,-1,-1,-1}; //æ— èˆ¹åˆ™ä¸º-1
     int transport_time;
     int loading_speed;
     int cargoNum;
@@ -61,8 +113,6 @@ public:
     void load();
 
 }berths[berth_num + 10];
-
-
 
 class Boat{
 public:
@@ -88,10 +138,10 @@ void Boat::moveAFrame() {
     if(shippingTime>0){
         shippingTime--;
         if(shippingTime==0){
-            if(targetBerth>=0){ //µ½´ï²´Î»
+            if(targetBerth>=0){ //åˆ°è¾¾æ³Šä½
                 berths[targetBerth].receive(Boat::id);
             }
-            else{ //µ½´ïvp
+            else{ //åˆ°è¾¾vp
                 //ship();
             }
         }
@@ -159,7 +209,6 @@ void Boat::go() {
     cout<<"go "<<Boat::id<<endl;
 }
 
-
 void Berth::load() {
     if(waitingBoatNum>0){
         Boat* boat=&boats[boatsIn[0]];
@@ -194,21 +243,22 @@ void Berth::lose(int boatId) {
     //boats[boatsIn[0]].state=1;
 }
 
+
 class Gird{
 public:
     char type;
     int robotId;
-    Gird():robotId(-1){}; //-1±íÊ¾ÎŞ»úÆ÷ÈË
+    Gird():robotId(-1){}; //-1è¡¨ç¤ºæ— æœºå™¨äºº
 
 }Map[n][n];
 
-int money, boat_capacity, id;
+int money, boat_capacity, id, cargoremained;//!
 
 void Init()
 {
     char line[N];
     for(int i = 0; i < n; i ++){
-        scanf("%s", line); //µØÍ¼ÊäÈë
+        scanf("%s", line); //åœ°å›¾è¾“å…¥
         //std::printf(line);
         for(int j=0;j<n;j++){
             switch (line[j]) {
@@ -242,21 +292,21 @@ void Init()
 
     for(int i = 0; i < berth_num; i ++)
     {
-        int id; //¸Û¿Úid
+        int id; //æ¸¯å£id
         scanf("%d", &id);
         berths[id].id=id;
-        //¸Û¿ÚµÄ×ø±ê£¬ÔËÊäµ½ĞéÄâµãµÄÊ±¼ä£¬×°ÔØËÙ¶È
+        //æ¸¯å£çš„åæ ‡ï¼Œè¿è¾“åˆ°è™šæ‹Ÿç‚¹çš„æ—¶é—´ï¼Œè£…è½½é€Ÿåº¦
         scanf("%d%d%d%d", &berths[id].x, &berths[id].y, &berths[id].transport_time, &berths[id].loading_speed);
     }
 
-    //³õÊ¼»¯´¬µÄÊôĞÔ
-    scanf("%d", &boat_capacity); //´¬µÄÈİÁ¿
+    //åˆå§‹åŒ–èˆ¹çš„å±æ€§
+    scanf("%d", &boat_capacity); //èˆ¹çš„å®¹é‡
     for(int i=0;i<5;i++){
         boats[i].capacity=boat_capacity;
         boats[i].id=i;
     }
 
-    //³õÊ¼»¯»úÆ÷ÈËµÄid
+    //åˆå§‹åŒ–æœºå™¨äººçš„id
     for(int i =0;i<10;i++){
         robots[i].id=i;
     }
@@ -267,34 +317,34 @@ void Init()
 }
 
 int Input(){
-    scanf("%d%d", &id, &money); //Ö¡ĞòºÅ£¬µ±Ç°½ğÇ®Êı
+    scanf("%d%d", &id, &money); //å¸§åºå·ï¼Œå½“å‰é‡‘é’±æ•°
 
-    int num; //ĞÂÔöµÄ»õÎïÁ¿
+    int num; //æ–°å¢çš„è´§ç‰©é‡
     scanf("%d", &num);
     for(int i = 0; i < num; i ++)
     {
         int x,y,v;
-        scanf("%d%d%d", &x,&y,&v);  //»õÎïµÄ×ø±êºÍ½ğ¶î
-        cargos[x][y].x=x;
-        cargos[x][y].y=y;
-        cargos[x][y].value=v;
-        cargos[x][y].time=1000;
+        scanf("%d%d%d", &x,&y,&v);  //è´§ç‰©çš„åæ ‡å’Œé‡‘é¢
+        Cargo* car = new Cargo;
+        car->x=x;
+        car->y=y;
+        car->value=v;
+        car->time=1000;
+        cargos[x][y]=car;
     }
 
-    //ÕâÀïĞèÒª±éÀú»õÎï£¬Éú´æÊ±¼ä¼õÒ»£¬ÕÒ²´Î»
-
-    //½ÓÏÂÀ´10ĞĞrobotÊı¾İ
+    //æ¥ä¸‹æ¥10è¡Œrobotæ•°æ®
     for(int i = 0; i < robot_num; i ++)
     {
-        //ÊÇ·ñĞ¯´øÎïÆ·£¬×ø±ê£¬×´Ì¬£¨»Ö¸´×´Ì¬»¹ÊÇÕı³£×´Ì¬£©
+        //æ˜¯å¦æºå¸¦ç‰©å“ï¼Œåæ ‡ï¼ŒçŠ¶æ€ï¼ˆæ¢å¤çŠ¶æ€è¿˜æ˜¯æ­£å¸¸çŠ¶æ€ï¼‰
         scanf("%d%d%d%d", &robots[i].carryState, &robots[i].x, &robots[i].y, &robots[i].movingState);
-        //°Ñ»úÆ÷ÈËµÄid±ê×¢µ½µØÍ¼ÉÏ
+        //æŠŠæœºå™¨äººçš„idæ ‡æ³¨åˆ°åœ°å›¾ä¸Š
         Map[robots[i].x][robots[i].y].robotId=i;
     }
 
-    //½ÓÏÂÀ´5ĞĞboatÊı¾İ
+    //æ¥ä¸‹æ¥5è¡Œboatæ•°æ®
     for(int i = 0; i < 5; i ++) {
-        //´¬µÄ×´Ì¬£¨ÔËÊäÖĞ£¬Õı³£×´Ì¬£¬²´Î»ÍâµÈ´ı×´Ì¬£©£¬Ä¿±ê²´Î»
+        //èˆ¹çš„çŠ¶æ€ï¼ˆè¿è¾“ä¸­ï¼Œæ­£å¸¸çŠ¶æ€ï¼Œæ³Šä½å¤–ç­‰å¾…çŠ¶æ€ï¼‰ï¼Œç›®æ ‡æ³Šä½
         scanf("%d%d\n", &boats[i].state, &boats[i].targetBerth);
         boats[i].action();
     }
@@ -308,8 +358,17 @@ int Input(){
     return id;
 }
 
+Cargo* cargos[N][N];
+for (int i = 0; i < N; i++)
+{
+    for(int j = 0; j < N; j++){
+        cargos[i][j] = nullptr;
+    }
+}
+
 int main()
 {
+    
     Init();
     for(int zhen = 1; zhen <= 15000; zhen ++)
     {

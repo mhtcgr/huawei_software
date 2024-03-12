@@ -1,4 +1,10 @@
 #include <bits/stdc++.h>
+/*#include<string>
+#include<vector>
+#include<queue>
+#include<algorithm>
+#include<iostream>
+#include<limits>*/
 using namespace std;
 
 const int n = 200;
@@ -14,7 +20,7 @@ public:
     Cargo():value(-1),x(-1),y(-1),idb(-1),time(-1){}; //初始化泊位坐标为（-1，-1, 可存在时间为-1
     
     int findBerth();
-}
+};
 
 int Cargo::findBerth(){//evaluation function for each berth
     //parameter for each evaluating dimension
@@ -57,7 +63,7 @@ public:
     int movingState;
 
     //一些初始化
-    Robot():id(-1),cargoValue(0),carryState(0),targetBerth(-1),targetCargo(-1),movingState(1) {}
+    Robot():id(-1),cargoValue(0),carryState(0),targetBerth(-1),targetCargox(-1),targetCargoy(-1),movingState(1) {}
 
     void collisionDetection();
 
@@ -74,14 +80,19 @@ public:
 }robots[robot_num + 10];
 
 void Robot::get(){
-    
-    Map[this->targetCargox][this->targetCargoy].type = '.';
+    if(this->x==this->targetCargox&&this->y==this->targetCargoy){
+        
+        Map[this->targetCargox][this->targetCargoy].type = '.';
 
-    this->cargoValue = cargos[this->targetCargox][this->targetCargoy].value;
-    this->carryState = 1;
-    this->targetBerth = cargos[this->targetCargox][this->targetCargoy]->idb;
+        this->cargoValue = cargos[this->targetCargox][this->targetCargoy]->value;
+        this->carryState = 1;
+        this->targetBerth = cargos[this->targetCargox][this->targetCargoy]->idb;
 
-    delete cargos[this->targetCargox][this->targetCargoy];
+        delete cargos[this->targetCargox][this->targetCargoy];
+
+    }else{
+        //error
+    }
 
 }
 
@@ -256,6 +267,13 @@ int money, boat_capacity, id, cargoremained;//!
 
 void Init()
 {
+    for (int i = 0; i < N; i++)
+    {
+        for(int j = 0; j < N; j++){
+            cargos[i][j] = nullptr;
+        }
+    }
+
     char line[N];
     for(int i = 0; i < n; i ++){
         scanf("%s", line); //地图输入
@@ -359,13 +377,6 @@ int Input(){
 }
 
 Cargo* cargos[N][N];
-for (int i = 0; i < N; i++)
-{
-    for(int j = 0; j < N; j++){
-        cargos[i][j] = nullptr;
-    }
-}
-
 int main()
 {
     

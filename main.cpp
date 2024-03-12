@@ -1,34 +1,36 @@
 #include <bits/stdc++.h>
-//#include <iostream>
-//#include <vector>
-//#include <algorithm>
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <list>
 using namespace std;
 
 const int n = 200;
 const int robot_num = 10;
 const int berth_num = 10;
 const int N = 210;
+int cargosum = 0;
 
 class Grid{
 public:
     char type;
     int robotId;
-    Grid():robotId(-1){}; //-1±íÊ¾ÎŞ»úÆ÷ÈË
+    Grid():robotId(-1){}; //-1è¡¨ç¤ºæ— æœºå™¨äºº
 
 }Map[n][n];
 
 struct Point
 {
-    int x, y; //µã×ø±ê£¬ÕâÀïÎªÁË·½±ã°´ÕÕC++µÄÊı×éÀ´¼ÆËã£¬x´ú±íºáÅÅ£¬y´ú±íÊúÁĞ
+    int x, y; //ç‚¹åæ ‡ï¼Œè¿™é‡Œä¸ºäº†æ–¹ä¾¿æŒ‰ç…§C++çš„æ•°ç»„æ¥è®¡ç®—ï¼Œxä»£è¡¨æ¨ªæ’ï¼Œyä»£è¡¨ç«–åˆ—
     int F, G, H; //F=G+H
-    Point *parent; //parentµÄ×ø±ê£¬ÕâÀïÃ»ÓĞÓÃÖ¸Õë£¬´Ó¶ø¼ò»¯´úÂë
-    Point(int _x, int _y) :x(_x), y(_y), F(0), G(0), H(0), parent(NULL)  //±äÁ¿³õÊ¼»¯
+    Point *parent; //parentçš„åæ ‡ï¼Œè¿™é‡Œæ²¡æœ‰ç”¨æŒ‡é’ˆï¼Œä»è€Œç®€åŒ–ä»£ï¿½?
+    Point(int _x, int _y) :x(_x), y(_y), F(0), G(0), H(0), parent(NULL)  //å˜é‡åˆå§‹ï¿½?
     {
     }
 };
 
 bool isCanReach(Point *point)
-{//ÏÂÒ»²½ÓĞ»úÆ÷ÈË»òÕßÓĞÕÏ°­ÎïºÍº£Ñó
+{//ä¸‹ä¸€æ­¥æœ‰æœºå™¨äººæˆ–è€…æœ‰éšœç¢ç‰©å’Œæµ·æ´‹
     if(Map[point->x][point->y].type=='#'||Map[point->x][point->y].type=='*'||Map[point->x][point->y].robotId!=-1)
         return false;
     return true;
@@ -40,26 +42,26 @@ public:
     std::list<Point *> GetPath(Point &startPoint, Point &endPoint, bool isIgnoreCorner);
     Point *findPath(Point &startPoint, Point &endPoint, bool isIgnoreCorner);
     std::vector<Point *> getSurroundPoints(const Point *point) const;
-    Point *isInList(const std::list<Point *> &list, const Point *point) const; //ÅĞ¶Ï¿ªÆô/¹Ø±ÕÁĞ±íÖĞÊÇ·ñ°üº¬Ä³µã
-    Point *getLeastFpoint(); //´Ó¿ªÆôÁĞ±íÖĞ·µ»ØFÖµ×îĞ¡µÄ½Úµã
-    //¼ÆËãFGHÖµ
+    Point *isInList(const std::list<Point *> &list, const Point *point) const; //åˆ¤æ–­å¼€ï¿½?/å…³é—­åˆ—è¡¨ä¸­æ˜¯å¦åŒ…å«æŸï¿½?
+    Point *getLeastFpoint(); //ä»å¼€å¯åˆ—è¡¨ä¸­è¿”å›Få€¼æœ€å°çš„èŠ‚ç‚¹
+    //è®¡ç®—FGHï¿½?
     int calcG(Point *temp_start, Point *point);
     int calcH(Point *point, Point *end);
     int calcF(Point *point);
 private:
-    std::list<Point *> openList;  //¿ªÆôÁĞ±í
-    std::list<Point *> closeList; //¹Ø±ÕÁĞ±í
+    std::list<Point *> openList;  //å¼€å¯åˆ—ï¿½?
+    std::list<Point *> closeList; //å…³é—­åˆ—è¡¨
 };
 
 int Astar::calcG(Point *temp_start, Point *point)
 {
-    int parentG = point->parent == NULL ? 0 : point->parent->G; //Èç¹ûÊÇ³õÊ¼½Úµã£¬ÔòÆä¸¸½ÚµãÊÇ¿Õ
+    int parentG = point->parent == NULL ? 0 : point->parent->G; //å¦‚æœæ˜¯åˆå§‹èŠ‚ç‚¹ï¼Œåˆ™å…¶çˆ¶èŠ‚ç‚¹æ˜¯ï¿½?
     return parentG + 1;
 }
 
 int Astar::calcH(Point *point, Point *end)
 {
-    //ÓÃÂü¹ş¶Ù¾àÀëÀ´µ±Æô·¢º¯Êı
+    //ç”¨æ›¼å“ˆé¡¿è·ç¦»æ¥å½“å¯å‘å‡½æ•°
     return ((end->x - point->x) + (end->y - point->y));
 }
 
@@ -83,17 +85,17 @@ Point *Astar::getLeastFpoint()
 
 Point *Astar::findPath(Point &startPoint, Point &endPoint, bool isIgnoreCorner)
 {
-    openList.push_back(new Point(startPoint.x, startPoint.y)); //ÖÃÈëÆğµã,¿½±´¿ª±ÙÒ»¸ö½Úµã£¬ÄÚÍâ¸ôÀë
+    openList.push_back(new Point(startPoint.x, startPoint.y)); //ç½®å…¥èµ·ç‚¹,æ‹·è´å¼€è¾Ÿä¸€ä¸ªèŠ‚ç‚¹ï¼Œå†…å¤–éš”ç¦»
     while (!openList.empty())
     {
-        auto curPoint = getLeastFpoint(); //ÕÒµ½FÖµ×îĞ¡µÄµã
-        openList.remove(curPoint); //´Ó¿ªÆôÁĞ±íÖĞÉ¾³ı
-        closeList.push_back(curPoint); //·Åµ½¹Ø±ÕÁĞ±í
-        //1,ÕÒµ½µ±Ç°ÖÜÎ§°Ë¸ö¸ñÖĞ¿ÉÒÔÍ¨¹ıµÄ¸ñ×Ó
+        auto curPoint = getLeastFpoint(); //æ‰¾åˆ°Få€¼æœ€å°çš„ï¿½?
+        openList.remove(curPoint); //ä»å¼€å¯åˆ—è¡¨ä¸­åˆ é™¤
+        closeList.push_back(curPoint); //æ”¾åˆ°å…³é—­åˆ—è¡¨
+        //1,æ‰¾åˆ°å½“å‰å‘¨å›´å…«ä¸ªæ ¼ä¸­å¯ä»¥é€šè¿‡çš„æ ¼ï¿½?
         auto surroundPoints = getSurroundPoints(curPoint);
         for (auto &target : surroundPoints)
         {
-            //2,¶ÔÄ³Ò»¸ö¸ñ×Ó£¬Èç¹ûËü²»ÔÚ¿ªÆôÁĞ±íÖĞ£¬¼ÓÈëµ½¿ªÆôÁĞ±í£¬ÉèÖÃµ±Ç°¸ñÎªÆä¸¸½Úµã£¬¼ÆËãF G H
+            //2,å¯¹æŸä¸€ä¸ªæ ¼å­ï¼Œå¦‚æœå®ƒä¸åœ¨å¼€å¯åˆ—è¡¨ä¸­ï¼ŒåŠ å…¥åˆ°å¼€å¯åˆ—è¡¨ï¼Œè®¾ç½®å½“å‰æ ¼ä¸ºå…¶çˆ¶èŠ‚ç‚¹ï¼Œè®¡ç®—F G H
             if (!isInList(openList, target))
             {
                 target->parent = curPoint;
@@ -104,7 +106,7 @@ Point *Astar::findPath(Point &startPoint, Point &endPoint, bool isIgnoreCorner)
 
                 openList.push_back(target);
             }
-                //3£¬¶ÔÄ³Ò»¸ö¸ñ×Ó£¬ËüÔÚ¿ªÆôÁĞ±íÖĞ£¬¼ÆËãGÖµ, Èç¹û±ÈÔ­À´µÄ´ó, ¾ÍÊ²Ã´¶¼²»×ö, ·ñÔòÉèÖÃËüµÄ¸¸½ÚµãÎªµ±Ç°µã,²¢¸üĞÂGºÍF
+                //3ï¼Œå¯¹æŸä¸€ä¸ªæ ¼å­ï¼Œå®ƒåœ¨å¼€å¯åˆ—è¡¨ä¸­ï¼Œè®¡ç®—Gï¿½?, å¦‚æœæ¯”åŸæ¥çš„ï¿½?, å°±ä»€ä¹ˆéƒ½ä¸åš, å¦åˆ™è®¾ç½®å®ƒçš„çˆ¶èŠ‚ç‚¹ä¸ºå½“å‰ï¿½?,å¹¶æ›´æ–°Gå’ŒF
             else
             {
                 int tempG = calcG(curPoint, target);
@@ -118,7 +120,7 @@ Point *Astar::findPath(Point &startPoint, Point &endPoint, bool isIgnoreCorner)
             }
             Point *resPoint = isInList(openList, &endPoint);
             if (resPoint)
-                return resPoint; //·µ»ØÁĞ±íÀïµÄ½ÚµãÖ¸Õë£¬²»ÒªÓÃÔ­À´´«ÈëµÄendpointÖ¸Õë£¬ÒòÎª·¢ÉúÁËÉî¿½±´
+                return resPoint; //è¿”å›åˆ—è¡¨é‡Œçš„èŠ‚ç‚¹æŒ‡é’ˆï¼Œä¸è¦ç”¨åŸæ¥ä¼ å…¥çš„endpointæŒ‡é’ˆï¼Œå› ä¸ºå‘ç”Ÿäº†æ·±æ‹·ï¿½?
         }
     }
 
@@ -129,14 +131,14 @@ std::list<Point *> Astar::GetPath(Point &startPoint, Point &endPoint, bool isIgn
 {
     Point *result = findPath(startPoint, endPoint, isIgnoreCorner);
     std::list<Point *> path;
-    //·µ»ØÂ·¾¶£¬Èç¹ûÃ»ÕÒµ½Â·¾¶£¬·µ»Ø¿ÕÁ´±í
+    //è¿”å›è·¯å¾„ï¼Œå¦‚æœæ²¡æ‰¾åˆ°è·¯å¾„ï¼Œè¿”å›ç©ºé“¾è¡¨
     while (result)
     {
         path.push_front(result);
         result = result->parent;
     }
 
-    // Çå¿ÕÁÙÊ±¿ª±ÕÁĞ±í£¬·ÀÖ¹ÖØ¸´Ö´ĞĞGetPathµ¼ÖÂ½á¹ûÒì³£
+    // æ¸…ç©ºä¸´æ—¶å¼€é—­åˆ—è¡¨ï¼Œé˜²æ­¢é‡å¤æ‰§è¡ŒGetPathå¯¼è‡´ç»“æœå¼‚å¸¸
     openList.clear();
     closeList.clear();
 
@@ -145,7 +147,7 @@ std::list<Point *> Astar::GetPath(Point &startPoint, Point &endPoint, bool isIgn
 
 Point *Astar::isInList(const std::list<Point *> &list, const Point *point) const
 {
-    //ÅĞ¶ÏÄ³¸ö½ÚµãÊÇ·ñÔÚÁĞ±íÖĞ£¬ÕâÀï²»ÄÜ±È½ÏÖ¸Õë£¬ÒòÎªÃ¿´Î¼ÓÈëÁĞ±íÊÇĞÂ¿ª±ÙµÄ½Úµã£¬Ö»ÄÜ±È½Ï×ø±ê
+    //åˆ¤æ–­æŸä¸ªèŠ‚ç‚¹æ˜¯å¦åœ¨åˆ—è¡¨ä¸­ï¼Œè¿™é‡Œä¸èƒ½æ¯”è¾ƒæŒ‡é’ˆï¼Œå› ä¸ºæ¯æ¬¡åŠ å…¥åˆ—è¡¨æ˜¯æ–°å¼€è¾Ÿçš„èŠ‚ç‚¹ï¼Œåªèƒ½æ¯”è¾ƒåï¿½?
     for (auto p : list)
         if (p->x == point->x&&p->y == point->y)
             return p;
@@ -153,7 +155,7 @@ Point *Astar::isInList(const std::list<Point *> &list, const Point *point) const
 }
 
 std::vector<Point *> Astar::getSurroundPoints(const Point *point) const
-{//°ÑÉÏÏÂ×óÓÒËÄ¸öµãÖĞÄÜ×ßµÄµã¼ÓÈëµ½¸½½üµÄµã¼¯ºÏµ±ÖĞ·µ»Ø
+{//æŠŠä¸Šä¸‹å·¦å³å››ä¸ªç‚¹ä¸­èƒ½èµ°çš„ç‚¹åŠ å…¥åˆ°é™„è¿‘çš„ç‚¹é›†åˆå½“ä¸­è¿”å›
     auto* up=new Point(point->x-1,point->y);
     auto* down=new Point(point->x+1,point->y);
     auto* left=new Point(point->x,point->y-1);
@@ -173,11 +175,11 @@ std::vector<Point *> Astar::getSurroundPoints(const Point *point) const
 class Cargo{
 public:
     int value;
-    int x, y; //xb,ybÎªÄ¿±ê²´Î»µÄ×ø±ê
+    int x, y; //xb,ybä¸ºç›®æ ‡æ³Šä½çš„åæ ‡
     int time;
     int matched;
     int berthid;
-    Cargo():time(1000),berthid(-1),matched(0){}; //³õÊ¼»¯²´Î»×ø±êÎª£¨-1£¬-1, ¿É´æÔÚÊ±¼äÎª-1
+    Cargo():time(1000),berthid(-1),matched(0){}; //åˆå§‹åŒ–æ³Šä½åæ ‡ä¸ºï¿½?-1ï¿½?-1, å¯å­˜åœ¨æ—¶é—´ä¸º-1
 
     int findBerth();
 };
@@ -190,7 +192,7 @@ public:
     int y;
     bool matched;
     int BoatNum;
-    int boatsIn[5]={-1,-1,-1,-1,-1}; //ÎŞ´¬ÔòÎª-1
+    int boatsIn[5]={-1,-1,-1,-1,-1}; //æ— èˆ¹åˆ™ä¸º-1
     int transport_time;
     int loading_speed;
     int cargoNum;
@@ -204,6 +206,7 @@ public:
     void load();
 
     void expect(int);
+
 }berths[berth_num + 10];
 
 int Cargo::findBerth(){//evaluation function for each berth
@@ -226,7 +229,7 @@ int Cargo::findBerth(){//evaluation function for each berth
     for (size_t i = 0; i < berth_num; i++)
     {
         int loadtime = berths[i].cargoNum/berths[i].loading_speed;//todo:cargonum after steps
-//todo: whether there is a ship
+        //todo: whether there is a ship
         if(loadtime <= steps){
             result = a*steps+c*berths[i].transport_time;
         }else{
@@ -250,9 +253,9 @@ public:
     int targetBerth;
     pair<int,int> targetCargo;
     int movingState;
-    int steps; //´ËÊ±»úÆ÷ÈËµ½Ä¿±ê¸Û¿Ú×ø±êµÄ²½Êı
+    int steps; //æ­¤æ—¶æœºå™¨äººåˆ°ç›®æ ‡æ¸¯å£åæ ‡çš„æ­¥æ•°
 
-    //Ò»Ğ©³õÊ¼»¯
+    //ä¸€äº›åˆå§‹åŒ–
     Robot():id(-1),cargoValue(0),carryState(0),targetBerth(-1),targetCargo(-1,-1),movingState(1) {}
 
     void planToGetOrPull();
@@ -268,23 +271,20 @@ public:
 }robots[robot_num + 10];
 
 void Robot::get(){
-    if(this->x==this->targetCargo.first&&this->y==this->targetCargo.second){
+    if(this->x==this->targetCargo.first&&this->y==this->targetCargo.second&&cargos[this->targetCargo.first][this->targetCargo.second]!=nullptr){
 
         Map[this->targetCargo.first][this->targetCargo.second].type = '.';
         this->cargoValue = cargos[this->targetCargo.first][this->targetCargo.second]->value;
         this->carryState = 1;
         this->targetBerth = cargos[this->targetCargo.first][this->targetCargo.second]->berthid;
-        //if()check nullptr
         delete cargos[this->targetCargo.first][this->targetCargo.second];
-
+        
     }else{
         //error
     }
-
 }
 
 void Robot::pull(int id){
-    berths[id].cargoValues.push(cargoValue);
     berths[id].cargoNum++;
     berths[id].cargoVal+=cargoValue;
 
@@ -296,26 +296,26 @@ void Robot::pull(int id){
 }
 
 Point findNearestBerthGrid(const Point& robot, const Point& berth) {
-    // Èç¹û»úÆ÷ÈËÔÚ²´Î»ÄÚ²¿£¬Ö±½Ó·µ»Ø»úÆ÷ÈËÎ»ÖÃ
+    // å¦‚æœæœºå™¨äººåœ¨æ³Šä½å†…éƒ¨ï¼Œç›´æ¥è¿”å›æœºå™¨äººä½ç½®
     if (robot.x >= berth.x && robot.x <= berth.x + 3 &&
         robot.y >= berth.y && robot.y <= berth.y + 3) {
         return robot;
     }
 
-    // ¼ÆËã»úÆ÷ÈËµ½²´Î»ËÄ¸ö±ßÔµÉÏËùÓĞ¸ñ×ÓµÄ¾àÀë£¬²¢ÕÒµ½×îĞ¡¾àÀë
+    // è®¡ç®—æœºå™¨äººåˆ°æ³Šä½å››ä¸ªè¾¹ç¼˜ä¸Šæ‰€æœ‰æ ¼å­çš„è·ç¦»ï¼Œå¹¶æ‰¾åˆ°æœ€å°è·ï¿½?
     int minDistance = INT_MAX;
     Point nearestGrid(0,0);
 
-    // ¼ÆËã»úÆ÷ÈËµ½²´Î»ËÄ¸ö±ßÔµÉÏµÄ¸ñ×ÓµÄ¾àÀë
+    // è®¡ç®—æœºå™¨äººåˆ°æ³Šä½å››ä¸ªè¾¹ç¼˜ä¸Šçš„æ ¼å­çš„è·ï¿½?
     for (int i = berth.x; i <= berth.x + 3; ++i) {
-        int distance = abs(robot.x - i) + abs(robot.y - berth.y); // ÉÏ±ßÔµ¸ñ×Ó
+        int distance = abs(robot.x - i) + abs(robot.y - berth.y); // ä¸Šè¾¹ç¼˜æ ¼ï¿½?
         if (distance < minDistance) {
             minDistance = distance;
             nearestGrid.x = i;
             nearestGrid.y = berth.y;
         }
 
-        distance = abs(robot.x - i) + abs(robot.y - (berth.y + 3)); // ÏÂ±ßÔµ¸ñ×Ó
+        distance = abs(robot.x - i) + abs(robot.y - (berth.y + 3)); // ä¸‹è¾¹ç¼˜æ ¼ï¿½?
         if (distance < minDistance) {
             minDistance = distance;
             nearestGrid.x = i;
@@ -324,14 +324,14 @@ Point findNearestBerthGrid(const Point& robot, const Point& berth) {
     }
 
     for (int j = berth.y + 1; j < berth.y + 3; ++j) {
-        int distance = abs(robot.x - berth.x) + abs(robot.y - j); // ×ó±ßÔµ¸ñ×Ó
+        int distance = abs(robot.x - berth.x) + abs(robot.y - j); // å·¦è¾¹ç¼˜æ ¼ï¿½?
         if (distance < minDistance) {
             minDistance = distance;
             nearestGrid.x = berth.x;
             nearestGrid.y = j;
         }
 
-        distance = abs(robot.x - (berth.x + 3)) + abs(robot.y - j); // ÓÒ±ßÔµ¸ñ×Ó
+        distance = abs(robot.x - (berth.x + 3)) + abs(robot.y - j); // å³è¾¹ç¼˜æ ¼ï¿½?
         if (distance < minDistance) {
             minDistance = distance;
             nearestGrid.x = berth.x+3;
@@ -345,10 +345,10 @@ Point findNearestBerthGrid(const Point& robot, const Point& berth) {
 void Robot::findCargo(){
     //if robot has no cargo, calculate the targetCargo.Vice versa, just go to the targetBerth.
     if(carryState==0){
-        //½áºÏ»õÎï¼Û¸ñ¡¢»õÎïµ½²´Î»µÄ¾àÀëºÍ×ÔÉíµ½»õÎïµÄ¾àÀëÀ´×ÛºÏÑ¡Ôñ
-        int a=1;//»õÎïvalueÈ¨ÖØ
-        int b=1;//»õÎï¾àÀëÈ¨ÖØ
-        int c=1;//»õÎïµ½²´Î»µÄ¾àÀëÈ¨ÖØ
+        //ç»“åˆè´§ç‰©ä»·æ ¼ã€è´§ç‰©åˆ°æ³Šä½çš„è·ç¦»å’Œè‡ªèº«åˆ°è´§ç‰©çš„è·ç¦»æ¥ç»¼åˆé€‰æ‹©
+        int a=1;//è´§ç‰©valueæƒé‡
+        int b=1;//è´§ç‰©è·ç¦»æƒé‡
+        int c=1;//è´§ç‰©åˆ°æ³Šä½çš„è·ç¦»æƒé‡
         double maxCargoVal=INT_MIN;
         for(int i=0;i<n;i++){
             for(int j=0;j<n;j++){
@@ -375,13 +375,13 @@ void Robot::findCargo(){
 void Robot::planToGetOrPull() {
     //before move
     //detect can we get or pull?
-    if(carryState==0&&x==targetCargo.first&&x==targetCargo.second){//ÊÖÉÏÃ»¶«Î÷£¬ÇÒ×ßµ½ÁËÄ¿±ê»õÎïµÄÎ»ÖÃ
+    if(carryState==0&&x==targetCargo.first&&x==targetCargo.second){//æ‰‹ä¸Šæ²¡ä¸œè¥¿ï¼Œä¸”èµ°åˆ°äº†ç›®æ ‡è´§ç‰©çš„ä½ï¿½?
         get();
         cout << "get " << id;
         return;
     }
     if(carryState==1&&berths[targetBerth].x<=x&&x<=berths[targetBerth].x+3&&berths[targetBerth].y<=y&&y<=berths[targetBerth].y+3){
-        //ÊÖÉÏÓĞ¶«Î÷¶øÇÒ×ßµ½ÁË²´Î»µÄ·¶Î§
+        //æ‰‹ä¸Šæœ‰ä¸œè¥¿è€Œä¸”èµ°åˆ°äº†æ³Šä½çš„èŒƒå›´
         pull(targetBerth);
         cout << "pull " << id;
     }
@@ -389,7 +389,7 @@ void Robot::planToGetOrPull() {
 
 void Robot::planToMove(){
     //move
-    //È·¶¨ÊÇÍùÉÏÏÂ×óÓÒÄÄ¸ö·½ÏòÒÆ¶¯
+    //ç¡®å®šæ˜¯å¾€ä¸Šä¸‹å·¦å³å“ªä¸ªæ–¹å‘ç§»åŠ¨
     Point end(0,0);
     if(carryState==1){
         end = findNearestBerthGrid(Point(x,y),Point(berths[targetBerth].x,berths[targetBerth].y));
@@ -403,26 +403,26 @@ void Robot::planToMove(){
     auto* left=new Point(x,y-1);
     auto* right=new Point(x,y+1);
     if(end.x>=x&&end.y>y){
-        //Ä¿±êÔÚ×Ô¼ºµÄÓÒÏÂ·½»òÕßÓÒ·½£¬ÏÈ¿´ÓÒ±ß£¨x£¬y+1£©£¬ÔÙ¿´ÏÂ±ß(x+1,y)µÄ¸ñ×Ó
-        if(isCanReach(right)){//ÏòÓÒ
+        //ç›®æ ‡åœ¨è‡ªå·±çš„å³ä¸‹æ–¹æˆ–è€…å³æ–¹ï¼Œå…ˆçœ‹å³è¾¹ï¼ˆxï¼Œy+1ï¼‰ï¼Œå†çœ‹ä¸‹è¾¹(x+1,y)çš„æ ¼ï¿½?
+        if(isCanReach(right)){//å‘å³
             cout << "move " << id << " " << 0;
             Map[x][y].robotId=-1;
             y++;
             Map[x][y].robotId=id;
         }
-        else if(isCanReach(down)){//ÏòÏÂ
+        else if(isCanReach(down)){//å‘ä¸‹
             cout << "move " << id << " " << 3;
             Map[x][y].robotId=-1;
             x++;
             Map[x][y].robotId=id;
         }
-        else if(isCanReach(up)){//ÏòÉÏ
+        else if(isCanReach(up)){//å‘ä¸Š
             cout << "move " << id << " " << 2;
             Map[x][y].robotId=-1;
             x--;
             Map[x][y].robotId=id;
         }
-        else if(isCanReach(left)) {//Ïò×ó
+        else if(isCanReach(left)) {//å‘å·¦
             cout << "move " << id << " " << 1;
             Map[x][y].robotId=-1;
             y--;
@@ -430,26 +430,26 @@ void Robot::planToMove(){
         }
     }
     else if(end.y<=y&&end.x>x){
-        //Ä¿±êÔÚ×Ô¼ºµÄ×óÏÂ·½»òÕßÏÂ·½£¬ÏÈ¿´ÏÂ±ß£¨x+1£¬y£©£¬ÔÙ¿´×ó±ß(x,y-1)µÄ¸ñ×Ó
-        if(isCanReach(down)){//ÏòÏÂ
+        //ç›®æ ‡åœ¨è‡ªå·±çš„å·¦ä¸‹æ–¹æˆ–è€…ä¸‹æ–¹ï¼Œå…ˆçœ‹ä¸‹è¾¹ï¼ˆx+1ï¼Œyï¼‰ï¼Œå†çœ‹å·¦è¾¹(x,y-1)çš„æ ¼ï¿½?
+        if(isCanReach(down)){//å‘ä¸‹
             cout << "move " << id << " " << 3;
             Map[x][y].robotId=-1;
             x++;
             Map[x][y].robotId=id;
         }
-        else if(isCanReach(left)) {//Ïò×ó
+        else if(isCanReach(left)) {//å‘å·¦
             cout << "move " << id << " " << 1;
             Map[x][y].robotId=-1;
             y--;
             Map[x][y].robotId=id;
         }
-        else if(isCanReach(right)){//ÏòÓÒ
+        else if(isCanReach(right)){//å‘å³
             cout << "move " << id << " " << 0;
             Map[x][y].robotId=-1;
             y++;
             Map[x][y].robotId=id;
         }
-        else if(isCanReach(up)){//ÏòÉÏ
+        else if(isCanReach(up)){//å‘ä¸Š
             cout << "move " << id << " " << 2;
             Map[x][y].robotId=-1;
             x--;
@@ -457,26 +457,26 @@ void Robot::planToMove(){
         }
     }
     else if(end.y<y&&end.x<=x){
-        //Ä¿±êÔÚ×Ô¼ºµÄ×óÉÏ·½»òÕß×ó·½£¬ÏÈ¿´×ó±ß£¨x+1£¬y£©£¬ÔÙ¿´ÉÏ±ß(x,y-1)µÄ¸ñ×Ó
-        if(isCanReach(left)) {//Ïò×ó
+        //ç›®æ ‡åœ¨è‡ªå·±çš„å·¦ä¸Šæ–¹æˆ–è€…å·¦æ–¹ï¼Œå…ˆçœ‹å·¦è¾¹ï¼ˆx+1ï¼Œyï¼‰ï¼Œå†çœ‹ä¸Šè¾¹(x,y-1)çš„æ ¼ï¿½?
+        if(isCanReach(left)) {//å‘å·¦
             cout << "move " << id << " " << 1;
             Map[x][y].robotId=-1;
             y--;
             Map[x][y].robotId=id;
         }
-        else if(isCanReach(up)){//ÏòÉÏ
+        else if(isCanReach(up)){//å‘ä¸Š
             cout << "move " << id << " " << 2;
             Map[x][y].robotId=-1;
             x--;
             Map[x][y].robotId=id;
         }
-        else if(isCanReach(down)){//ÏòÏÂ
+        else if(isCanReach(down)){//å‘ä¸‹
             cout << "move " << id << " " << 3;
             Map[x][y].robotId=-1;
             x++;
             Map[x][y].robotId=id;
         }
-        else if(isCanReach(right)){//ÏòÓÒ
+        else if(isCanReach(right)){//å‘å³
             cout << "move " << id << " " << 0;
             Map[x][y].robotId=-1;
             y++;
@@ -484,26 +484,26 @@ void Robot::planToMove(){
         }
     }
     else if(end.y<y&&end.x<=x){
-        //Ä¿±êÔÚ×Ô¼ºµÄÓÒÉÏ·½»òÕßÉÏ·½£¬ÏÈ¿´ÉÏ±ß£¨x+1£¬y£©£¬ÔÙ¿´ÓÒ±ß(x,y-1)µÄ¸ñ×Ó
-        if(isCanReach(up)){//ÏòÉÏ
+        //ç›®æ ‡åœ¨è‡ªå·±çš„å³ä¸Šæ–¹æˆ–è€…ä¸Šæ–¹ï¼Œå…ˆçœ‹ä¸Šè¾¹ï¼ˆx+1ï¼Œyï¼‰ï¼Œå†çœ‹å³è¾¹(x,y-1)çš„æ ¼ï¿½?
+        if(isCanReach(up)){//å‘ä¸Š
             cout << "move " << id << " " << 2;
             Map[x][y].robotId=-1;
             x--;
             Map[x][y].robotId=id;
         }
-        else if(isCanReach(right)){//ÏòÓÒ
+        else if(isCanReach(right)){//å‘å³
             cout << "move " << id << " " << 0;
             Map[x][y].robotId=-1;
             y++;
             Map[x][y].robotId=id;
         }
-        else if(isCanReach(left)) {//Ïò×ó
+        else if(isCanReach(left)) {//å‘å·¦
             cout << "move " << id << " " << 1;
             Map[x][y].robotId=-1;
             y--;
             Map[x][y].robotId=id;
         }
-        else if(isCanReach(down)){//ÏòÏÂ
+        else if(isCanReach(down)){//å‘ä¸‹
             cout << "move " << id << " " << 3;
             Map[x][y].robotId=-1;
             x++;
@@ -523,9 +523,9 @@ void Robot::planToMove(){
 //    }
 //    std::list<Point *> path = astar.GetPath(start, end, false);
 //    std::list<Point*>::iterator it = path.begin();
-//    std::advance(it, 1); // ½«µü´úÆ÷ÏòÇ°ÒÆ¶¯Ò»¸öÎ»ÖÃ£¬¼´Ìø¹ıµÚÒ»¸öÔªËØ
+//    std::advance(it, 1); // å°†è¿­ä»£å™¨å‘å‰ç§»åŠ¨ä¸€ä¸ªä½ç½®ï¼Œå³è·³è¿‡ç¬¬ä¸€ä¸ªå…ƒï¿½?
 //    Point* next = *it;
-//    if(next->x-x==1){//ÏòÏÂ
+//    if(next->x-x==1){//å‘ä¸‹
 //        cout << "move " << id << " " << 3;
 //        Map[x][y].robotId=-1;
 //        x++;
@@ -575,10 +575,10 @@ public:
 //    if(shippingTime>0){
 //        shippingTime--;
 //        if(shippingTime==0){
-//            if(targetBerth>=0){ //µ½´ï²´Î»
+//            if(targetBerth>=0){ //åˆ°è¾¾æ³Šä½
 //                berths[targetBerth].receive(Boat::id);
 //            }
-//            else{ //µ½´ïvp
+//            else{ //åˆ°è¾¾vp
 //                //ship();
 //            }
 //        }
@@ -633,6 +633,7 @@ double Boat::value(int berthId) {
         if(berth.matched){
             return -1;
         }
+
         Boat boat=boats[berth.boatsIn[0]];
         int loadTime= ::ceil((boat.capacity-boat.cargoNum)/berth.loading_speed);
         int waitingTime=loadTime-berth.transport_time>0 ? loadTime-berth.transport_time : 0;
@@ -665,22 +666,18 @@ void Boat::go() {
     cout<<"go "<<Boat::id<<endl;
 }
 
-
 void Berth::load() {
     if(BoatNum>0){
         Boat* boat=&boats[boatsIn[0]];
         int canLoadNum=cargoNum>=loading_speed ? loading_speed : cargoNum;
-        int loadNum;
         if(boat->capacity-boat->cargoNum>=canLoadNum){
-            loadNum=canLoadNum;
             boat->cargoNum+=canLoadNum;
+            cargoNum-=canLoadNum;
         }
         else{
-            loadNum=boat->capacity-boat->cargoNum;
+            cargoNum-=(boat->capacity-boat->cargoNum);
             boat->cargoNum=boat->capacity;
         }
-        cargoNum-=loadNum;
-        for(int i=0;i<loadNum;i++) cargoValues.pop();
     }
 }
 
@@ -703,7 +700,6 @@ void Berth::lose(int boatId) {
     boatsIn[BoatNum]=-1;
     //boats[boatsIn[0]].state=1;
 }
-
 void Berth::expect(int time) {
     for(int i=0;i<10;i++){
         Robot r=robots[i];
@@ -726,9 +722,10 @@ void Init()
             j = nullptr;
         }
     }
+
     char line[N];
     for(auto & i : Map){
-        scanf("%s", line); //µØÍ¼ÊäÈë
+        scanf("%s", line); //åœ°å›¾è¾“å…¥
         //std::printf(line);
         for(int j=0;j<n;j++){
             switch (line[j]) {
@@ -762,22 +759,22 @@ void Init()
 
     for(int i = 0; i < berth_num; i ++)
     {
-        int id; //¸Û¿Úid
+        int id; //æ¸¯å£id
         scanf("%d", &id);
         berths[id].id=id;
-        //¸Û¿ÚµÄ×ø±ê£¬ÔËÊäµ½ĞéÄâµãµÄÊ±¼ä£¬×°ÔØËÙ¶È
+        //æ¸¯å£çš„åæ ‡ï¼Œè¿è¾“åˆ°è™šæ‹Ÿç‚¹çš„æ—¶é—´ï¼Œè£…è½½é€Ÿåº¦
         scanf("%d%d%d%d", &berths[id].x, &berths[id].y, &berths[id].transport_time, &berths[id].loading_speed);
     }
 
-    //³õÊ¼»¯´¬µÄÊôĞÔ
-    scanf("%d", &boat_capacity); //´¬µÄÈİÁ¿
+    //åˆå§‹åŒ–èˆ¹çš„å±ï¿½?
+    scanf("%d", &boat_capacity); //èˆ¹çš„å®¹é‡
     for(int i=0;i<5;i++){
         boats[i].capacity=boat_capacity;
         boats[i].id=i;
         boats[i].targetBerth=i;
     }
 
-    //³õÊ¼»¯»úÆ÷ÈËµÄid
+    //åˆå§‹åŒ–æœºå™¨äººçš„id
     for(int i =0;i<10;i++){
         robots[i].id=i;
     }
@@ -788,36 +785,52 @@ void Init()
 }
 
 int Input(){
-    scanf("%d%d", &id, &money); //Ö¡ĞòºÅ£¬µ±Ç°½ğÇ®Êı
+    scanf("%d%d", &id, &money); //å¸§åºå·ï¼Œå½“å‰é‡‘é’±ï¿½?
 
-    int num; //ĞÂÔöµÄ»õÎïÁ¿
+    int num; //æ–°å¢çš„è´§ç‰©é‡
     scanf("%d", &num);
+    cargosum+=num;
     for(int i = 0; i < num; i ++)
     {
         int x,y,v;
-        scanf("%d%d%d", &x,&y,&v);  //»õÎïµÄ×ø±êºÍ½ğ¶î
-        cargos[x][y]->x=x;
-        cargos[x][y]->y=y;
-        cargos[x][y]->value=v;
-        cargos[x][y]->time=1000;
-        //targetBerthµÄÈ·¶¨
+        scanf("%d%d%d", &x,&y,&v);  //è´§ç‰©çš„åæ ‡å’Œé‡‘é¢
+        Cargo* car = new Cargo;
+        car->x=x;
+        car->y=y;
+        car->value=v;
+        car->time=1000;
+        cargos[x][y]=car;
+        //targetBerthçš„ç¡®å®š
+        cargos[x][y]->berthid = cargos[x][y]->findBerth();
     }
 
-    //ÕâÀïĞèÒª±éÀú»õÎï£¬Éú´æÊ±¼ä¼õÒ»£¬ÕÒ²´Î»
+    //éå†è´§ç‰©ï¼Œç”Ÿå­˜æ—¶é—´å‡ä¸€
 
+    for (auto & cargo : cargos)
+    {
+        for(auto & j : cargo){
+            if(j!=nullptr){
+                j->time--;
+                if(j->time<=0){
+                    delete j;
+                    cargosum--;
+                }
+            }
+        }
+    }
 
-    //½ÓÏÂÀ´10ĞĞrobotÊı¾İ
+    //æ¥ä¸‹ï¿½?10è¡Œrobotæ•°æ®
     for(int i = 0; i < robot_num; i ++)
     {
-        //ÊÇ·ñĞ¯´øÎïÆ·£¬×ø±ê£¬×´Ì¬£¨»Ö¸´×´Ì¬»¹ÊÇÕı³£×´Ì¬£©
+        //æ˜¯å¦æºå¸¦ç‰©å“ï¼Œåæ ‡ï¼ŒçŠ¶æ€ï¼ˆæ¢å¤çŠ¶æ€è¿˜æ˜¯æ­£å¸¸çŠ¶æ€ï¼‰
         scanf("%d%d%d%d", &robots[i].carryState, &robots[i].x, &robots[i].y, &robots[i].movingState);
-        //°Ñ»úÆ÷ÈËµÄid±ê×¢µ½µØÍ¼ÉÏ
+        //æŠŠæœºå™¨äººçš„idæ ‡æ³¨åˆ°åœ°å›¾ä¸Š
         Map[robots[i].x][robots[i].y].robotId=i;
     }
 
-    //½ÓÏÂÀ´5ĞĞboatÊı¾İ
+    //æ¥ä¸‹ï¿½?5è¡Œboatæ•°æ®
     for(int i = 0; i < 5; i ++) {
-        //´¬µÄ×´Ì¬£¨ÔËÊäÖĞ£¬Õı³£×´Ì¬£¬²´Î»ÍâµÈ´ı×´Ì¬£©£¬Ä¿±ê²´Î»
+        //èˆ¹çš„çŠ¶æ€ï¼ˆè¿è¾“ä¸­ï¼Œæ­£å¸¸çŠ¶æ€ï¼Œæ³Šä½å¤–ç­‰å¾…çŠ¶æ€ï¼‰ï¼Œç›®æ ‡æ³Šï¿½?
         scanf("%d%d\n", &boats[i].state, &boats[i].targetBerth);
     }
     char okk[100];
@@ -826,8 +839,8 @@ int Input(){
 }
 
 bool compareForRobot(int id1,int id2) {
-    //¸ø»úÆ÷ÈËÅÅĞò£¬¸ù¾İÅÅĞòºóµÄĞòºÅÀ´¶¯»úÆ÷ÈË
-    //Ê×ÏÈ£¬Ã»»õÎïµÄÓÅÏÈ£¬ÒòÎª»õÎï¿ÉÄÜ»áÏûÊ§£»Æä´ÎÃ»»õÎïµÄµ±ÖĞË­µÄ»õÎï¼ÛÖµ×î´óË­ÓÅÏÈ£»ÓĞ»õÎïµÄÒ²ÊÇË­µÄ»õÎï¼ÛÖµ×î´óË­ÓÅÏÈ
+    //ç»™æœºå™¨äººæ’åºï¼Œæ ¹æ®æ’åºåçš„åºå·æ¥åŠ¨æœºå™¨äºº
+    //é¦–å…ˆï¼Œæ²¡è´§ç‰©çš„ä¼˜å…ˆï¼Œå› ä¸ºè´§ç‰©å¯èƒ½ä¼šæ¶ˆå¤±ï¼›å…¶æ¬¡æ²¡è´§ç‰©çš„å½“ä¸­è°çš„è´§ç‰©ä»·å€¼æœ€å¤§è°ä¼˜å…ˆï¼›æœ‰è´§ç‰©çš„ä¹Ÿæ˜¯è°çš„è´§ç‰©ä»·å€¼æœ€å¤§è°ä¼˜å…ˆ
     if(robots[id1].carryState==0&&robots[id2].carryState==1)
         return false;
     if(robots[id2].carryState==0&&robots[id1].carryState==1)
@@ -836,6 +849,7 @@ bool compareForRobot(int id1,int id2) {
         return robots[id1].cargoValue < robots[id2].cargoValue;
     if(robots[id1].carryState==0&&robots[id2].carryState==0)
         return cargos[robots[id1].x][robots[id1].y]->value < cargos[robots[id2].x][robots[id2].y]->value;
+    return true;
 }
 
 int main()
@@ -856,15 +870,16 @@ int main()
         for(auto robot:vec)
             robots[robot].planToGetOrPull();
 
-        //´¬²°Ö¸Áî
+        //èˆ¹èˆ¶æŒ‡ä»¤
         for(int i=0;i<5;i++){
             boats[i].action();
         }
 
-        //¸Û¿Ú×°ÔØ»õÎï
+        //æ³Šä½è£…å¸è´§ç‰©
         for(int i = 0;i<10;i++){
             berths[i].load();
         }
+
         puts("OK");
         fflush(stdout);
     }

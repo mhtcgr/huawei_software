@@ -34,6 +34,7 @@ bool isCanReach(Point *point)
         return false;
     if((x<200&&x>=0&&y<200&&y>=0)&&(Map[x][y].type=='.'&&Map[x][y].robotId==-1))
         return true;
+    return false;
 }
 
 class Astar
@@ -250,6 +251,7 @@ public:
     pair<int,int> targetCargo;
     int movingState;
     int stepsToBerth;
+    int stepsToCargo;
     //一些初始化
     Robot():id(-1),cargoValue(0),carryState(0),targetBerth(-1),targetCargo(-1,-1),movingState(1),stepsToBerth(-1) {}
 
@@ -533,6 +535,10 @@ void Robot::planToMove(){
         end.y=targetCargo.second;
     }
     std::list<Point *> path = astar.GetPath(start, end);
+    if(carryState==1)
+        stepsToBerth=(int)path.size();
+    else
+        stepsToCargo=(int)path.size();
     auto it = path.begin();
     std::advance(it, 1); // 将迭代器向前移动一个位置，即跳过第一个元素
     Point* next = *it;
@@ -833,8 +839,6 @@ int main()
             if(robots[robot].movingState==1)
                 robots[robot].planToGetOrPull();
         //船舶指令
-
-
         for(int i=0;i<5;i++){
             boats[i].action();
         }

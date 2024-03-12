@@ -1,15 +1,10 @@
 #include <bits/stdc++.h>
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <list>
 using namespace std;
 
 const int n = 200;
 const int robot_num = 10;
 const int berth_num = 10;
 const int N = 210;
-int cargosum = 0;
 
 class Grid{
 public:
@@ -23,39 +18,44 @@ struct Point
 {
     int x, y; //点坐标，这里为了方便按照C++的数组来计算，x代表横排，y代表竖列
     int F, G, H; //F=G+H
-    Point *parent; //parent的坐标，这里没有用指针，从而简化代�?
-    Point(int _x, int _y) :x(_x), y(_y), F(0), G(0), H(0), parent(NULL)  //变量初始�?
+    Point *parent; //parent的坐标，这里没有用指针，从而简化代码
+    Point(int _x, int _y) :x(_x), y(_y), F(0), G(0), H(0), parent(nullptr)  //变量初始化
     {
     }
 };
 
 bool isCanReach(Point *point)
 {//下一步有机器人或者有障碍物和海洋
-    if(Map[point->x][point->y].type=='#'||Map[point->x][point->y].type=='*'||Map[point->x][point->y].robotId!=-1)
+    int x=point->x;
+    int y=point->y;
+    if(x>200||x<0||y>200||y<0)
         return false;
-    return true;
+    if((x<200&&0<=x&&y<200&&y>=0)&&(Map[x][y].type=='#'||Map[x][y].type=='*'||Map[x][y].robotId!=-1))
+        return false;
+    if((x<200&&x>=0&&y<200&&y>=0)&&(Map[x][y].type=='.'&&Map[x][y].robotId==-1))
+        return true;
 }
 
 class Astar
 {
 public:
-    std::list<Point *> GetPath(Point &startPoint, Point &endPoint, bool isIgnoreCorner);
-    Point *findPath(Point &startPoint, Point &endPoint, bool isIgnoreCorner);
-    std::vector<Point *> getSurroundPoints(const Point *point) const;
-    Point *isInList(const std::list<Point *> &list, const Point *point) const; //判断开�?/关闭列表中是否包含某�?
+    std::list<Point *> GetPath(Point &startPoint, Point &endPoint);
+    Point *findPath(Point &startPoint, Point &endPoint);
+    static std::vector<Point *> getSurroundPoints(const Point *point) ;
+    Point *isInList(const std::list<Point *> &list, const Point *point) const; //判断开启/关闭列表中是否包含某点
     Point *getLeastFpoint(); //从开启列表中返回F值最小的节点
-    //计算FGH�?
-    int calcG(Point *temp_start, Point *point);
-    int calcH(Point *point, Point *end);
-    int calcF(Point *point);
+    //计算FGH值
+    static int calcG(Point *temp_start, Point *point);
+    static int calcH(Point *point, Point *end);
+    static int calcF(Point *point);
 private:
-    std::list<Point *> openList;  //开启列�?
+    std::list<Point *> openList;  //开启列表
     std::list<Point *> closeList; //关闭列表
 };
 
 int Astar::calcG(Point *temp_start, Point *point)
 {
-    int parentG = point->parent == NULL ? 0 : point->parent->G; //如果是初始节点，则其父节点是�?
+    int parentG = point->parent == nullptr ? 0 : point->parent->G; //如果是初始节点，则其父节点是空
     return parentG + 1;
 }
 
@@ -80,18 +80,18 @@ Point *Astar::getLeastFpoint()
                 resPoint = point;
         return resPoint;
     }
-    return NULL;
+    return nullptr;
 }
 
-Point *Astar::findPath(Point &startPoint, Point &endPoint, bool isIgnoreCorner)
+Point *Astar::findPath(Point &startPoint, Point &endPoint)
 {
     openList.push_back(new Point(startPoint.x, startPoint.y)); //置入起点,拷贝开辟一个节点，内外隔离
     while (!openList.empty())
     {
-        auto curPoint = getLeastFpoint(); //找到F值最小的�?
+        auto curPoint = getLeastFpoint(); //找到F值最小的点
         openList.remove(curPoint); //从开启列表中删除
         closeList.push_back(curPoint); //放到关闭列表
-        //1,找到当前周围八个格中可以通过的格�?
+        //1,找到当前周围4个格中可以通过的格子
         auto surroundPoints = getSurroundPoints(curPoint);
         for (auto &target : surroundPoints)
         {
@@ -106,7 +106,7 @@ Point *Astar::findPath(Point &startPoint, Point &endPoint, bool isIgnoreCorner)
 
                 openList.push_back(target);
             }
-                //3，对某一个格子，它在开启列表中，计算G�?, 如果比原来的�?, 就什么都不做, 否则设置它的父节点为当前�?,并更新G和F
+                //3，对某一个格子，它在开启列表中，计算G值, 如果比原来的大, 就什么都不做, 否则设置它的父节点为当前点,并更新G和F
             else
             {
                 int tempG = calcG(curPoint, target);
@@ -120,16 +120,16 @@ Point *Astar::findPath(Point &startPoint, Point &endPoint, bool isIgnoreCorner)
             }
             Point *resPoint = isInList(openList, &endPoint);
             if (resPoint)
-                return resPoint; //返回列表里的节点指针，不要用原来传入的endpoint指针，因为发生了深拷�?
+                return resPoint; //返回列表里的节点指针，不要用原来传入的endpoint指针，因为发生了深拷贝
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
-std::list<Point *> Astar::GetPath(Point &startPoint, Point &endPoint, bool isIgnoreCorner)
+std::list<Point *> Astar::GetPath(Point &startPoint, Point &endPoint)
 {
-    Point *result = findPath(startPoint, endPoint, isIgnoreCorner);
+    Point *result = findPath(startPoint, endPoint);
     std::list<Point *> path;
     //返回路径，如果没找到路径，返回空链表
     while (result)
@@ -147,14 +147,14 @@ std::list<Point *> Astar::GetPath(Point &startPoint, Point &endPoint, bool isIgn
 
 Point *Astar::isInList(const std::list<Point *> &list, const Point *point) const
 {
-    //判断某个节点是否在列表中，这里不能比较指针，因为每次加入列表是新开辟的节点，只能比较坐�?
+    //判断某个节点是否在列表中，这里不能比较指针，因为每次加入列表是新开辟的节点，只能比较坐标
     for (auto p : list)
         if (p->x == point->x&&p->y == point->y)
             return p;
-    return NULL;
+    return nullptr;
 }
 
-std::vector<Point *> Astar::getSurroundPoints(const Point *point) const
+std::vector<Point *> Astar::getSurroundPoints(const Point *point)
 {//把上下左右四个点中能走的点加入到附近的点集合当中返回
     auto* up=new Point(point->x-1,point->y);
     auto* down=new Point(point->x+1,point->y);
@@ -179,7 +179,7 @@ public:
     int time;
     int matched;
     int berthid;
-    Cargo():time(1000),berthid(-1),matched(0){}; //初始化泊位坐标为�?-1�?-1, 可存在时间为-1
+    Cargo():time(1000),berthid(-1),matched(0){}; //初始化泊位坐标为（-1，-1, 可存在时间为-1
 
     int findBerth();
 };
@@ -216,7 +216,7 @@ int Cargo::findBerth(){//evaluation function for each berth
     Point start(x, y);
     Astar astar;
     Point end(0,0);
-    std::list<Point *> path = astar.GetPath(start, end, false);
+    std::list<Point *> path = astar.GetPath(start, end);
 
     int steps = path.size();//pace to berth by robot plan
     int max = 0;
@@ -225,7 +225,7 @@ int Cargo::findBerth(){//evaluation function for each berth
     for (size_t i = 0; i < berth_num; i++)
     {
         int loadtime = berths[i].cargoNum/berths[i].loading_speed;//todo:cargonum after steps
-        //todo: whether there is a ship
+//todo: whether there is a ship
         if(loadtime <= steps){
             result = a*steps+c*berths[i].transport_time;
         }else{
@@ -244,14 +244,14 @@ class Robot{
 public:
     int id;
     int cargoValue;
-    int x, y;
+    int x{}, y{};
     int carryState;
     int targetBerth;
     pair<int,int> targetCargo;
     int movingState;
-
+    int stepsToBerth;
     //一些初始化
-    Robot():id(-1),cargoValue(0),carryState(0),targetBerth(-1),targetCargo(-1,-1),movingState(1) {}
+    Robot():id(-1),cargoValue(0),carryState(0),targetBerth(-1),targetCargo(-1,-1),movingState(1),stepsToBerth(-1) {}
 
     void planToGetOrPull();
 
@@ -266,14 +266,15 @@ public:
 }robots[robot_num + 10];
 
 void Robot::get(){
-    if(this->x==this->targetCargo.first&&this->y==this->targetCargo.second&&cargos[this->targetCargo.first][this->targetCargo.second]!=nullptr){
+    if(this->x==this->targetCargo.first&&this->y==this->targetCargo.second){
 
         Map[this->targetCargo.first][this->targetCargo.second].type = '.';
         this->cargoValue = cargos[this->targetCargo.first][this->targetCargo.second]->value;
         this->carryState = 1;
         this->targetBerth = cargos[this->targetCargo.first][this->targetCargo.second]->berthid;
+        //if()check nullptr
         delete cargos[this->targetCargo.first][this->targetCargo.second];
-        
+
     }else{
         //error
     }
@@ -298,20 +299,20 @@ Point findNearestBerthGrid(const Point& robot, const Point& berth) {
         return robot;
     }
 
-    // 计算机器人到泊位四个边缘上所有格子的距离，并找到最小距�?
+    // 计算机器人到泊位四个边缘上所有格子的距离，并找到最小距离
     int minDistance = INT_MAX;
     Point nearestGrid(0,0);
 
-    // 计算机器人到泊位四个边缘上的格子的距�?
+    // 计算机器人到泊位四个边缘上的格子的距离
     for (int i = berth.x; i <= berth.x + 3; ++i) {
-        int distance = abs(robot.x - i) + abs(robot.y - berth.y); // 上边缘格�?
+        int distance = abs(robot.x - i) + abs(robot.y - berth.y); // 上边缘格子
         if (distance < minDistance) {
             minDistance = distance;
             nearestGrid.x = i;
             nearestGrid.y = berth.y;
         }
 
-        distance = abs(robot.x - i) + abs(robot.y - (berth.y + 3)); // 下边缘格�?
+        distance = abs(robot.x - i) + abs(robot.y - (berth.y + 3)); // 下边缘格子
         if (distance < minDistance) {
             minDistance = distance;
             nearestGrid.x = i;
@@ -320,14 +321,14 @@ Point findNearestBerthGrid(const Point& robot, const Point& berth) {
     }
 
     for (int j = berth.y + 1; j < berth.y + 3; ++j) {
-        int distance = abs(robot.x - berth.x) + abs(robot.y - j); // 左边缘格�?
+        int distance = abs(robot.x - berth.x) + abs(robot.y - j); // 左边缘格子
         if (distance < minDistance) {
             minDistance = distance;
             nearestGrid.x = berth.x;
             nearestGrid.y = j;
         }
 
-        distance = abs(robot.x - (berth.x + 3)) + abs(robot.y - j); // 右边缘格�?
+        distance = abs(robot.x - (berth.x + 3)) + abs(robot.y - j); // 右边缘格子
         if (distance < minDistance) {
             minDistance = distance;
             nearestGrid.x = berth.x+3;
@@ -371,7 +372,7 @@ void Robot::findCargo(){
 void Robot::planToGetOrPull() {
     //before move
     //detect can we get or pull?
-    if(carryState==0&&x==targetCargo.first&&x==targetCargo.second){//手上没东西，且走到了目标货物的位�?
+    if(carryState==0&&x==targetCargo.first&&x==targetCargo.second){//手上没东西，且走到了目标货物的位置
         get();
         cout << "get " << id;
         return;
@@ -386,165 +387,179 @@ void Robot::planToGetOrPull() {
 void Robot::planToMove(){
     //move
     //确定是往上下左右哪个方向移动
+//    Point end(0,0);
+//    if (carryState == 1)
+//        end = findNearestBerthGrid(Point(x, y), Point(berths[targetBerth].x, berths[targetBerth].y));
+//    else {
+//        end.x = targetCargo.first;
+//        end.y = targetCargo.second;
+//    }
+//    auto* up=new Point(x-1,y);
+//    auto* down=new Point(x+1,y);
+//    auto* left=new Point(x,y-1);
+//    auto* right=new Point(x,y+1);
+//    if(end.x>=x&&end.y>y){
+//        //目标在自己的右下方或者右方，先看右边（x，y+1），再看下边(x+1,y)的格子
+//        if(isCanReach(right)){//向右
+//            cout << "move " << id << " " << 0;
+//            Map[x][y].robotId=-1;
+//            y++;
+//            Map[x][y].robotId=id;
+//            return;
+//        }
+//        else if(isCanReach(down)){//向下
+//            cout << "move " << id << " " << 3;
+//            Map[x][y].robotId=-1;
+//            x++;
+//            Map[x][y].robotId=id;
+//        }
+//        else if(isCanReach(up)){//向上
+//            cout << "move " << id << " " << 2;
+//            Map[x][y].robotId=-1;
+//            x--;
+//            Map[x][y].robotId=id;
+//            return;
+//        }
+//        else if(isCanReach(left)) {//向左
+//            cout << "move " << id << " " << 1;
+//            Map[x][y].robotId=-1;
+//            y--;
+//            Map[x][y].robotId=id;
+//            return;
+//        }
+//    }
+//    else if(end.y<=y&&end.x>x){
+//        //目标在自己的左下方或者下方，先看下边（x+1，y），再看左边(x,y-1)的格子
+//        if(isCanReach(down)){//向下
+//            cout << "move " << id << " " << 3;
+//            Map[x][y].robotId=-1;
+//            x++;
+//            Map[x][y].robotId=id;
+//            return;
+//        }
+//        else if(isCanReach(left)) {//向左
+//            cout << "move " << id << " " << 1;
+//            Map[x][y].robotId=-1;
+//            y--;
+//            Map[x][y].robotId=id;
+//            return;
+//        }
+//        else if(isCanReach(right)){//向右
+//            cout << "move " << id << " " << 0;
+//            Map[x][y].robotId=-1;
+//            y++;
+//            Map[x][y].robotId=id;
+//            return;
+//        }
+//        else if(isCanReach(up)){//向上
+//            cout << "move " << id << " " << 2;
+//            Map[x][y].robotId=-1;
+//            x--;
+//            Map[x][y].robotId=id;
+//            return;
+//        }
+//    }
+//    else if(end.y<y&&end.x<=x){
+//        //目标在自己的左上方或者左方，先看左边（x+1，y），再看上边(x,y-1)的格子
+//        if(isCanReach(left)) {//向左
+//            cout << "move " << id << " " << 1;
+//            Map[x][y].robotId=-1;
+//            y--;
+//            Map[x][y].robotId=id;
+//            return;
+//        }
+//        else if(isCanReach(up)){//向上
+//            cout << "move " << id << " " << 2;
+//            Map[x][y].robotId=-1;
+//            x--;
+//            Map[x][y].robotId=id;
+//            return;
+//        }
+//        else if(isCanReach(down)){//向下
+//            cout << "move " << id << " " << 3;
+//            Map[x][y].robotId=-1;
+//            x++;
+//            Map[x][y].robotId=id;
+//            return;
+//        }
+//        else if(isCanReach(right)){//向右
+//            cout << "move " << id << " " << 0;
+//            Map[x][y].robotId=-1;
+//            y++;
+//            Map[x][y].robotId=id;
+//            return;
+//        }
+//    }
+//    else if(end.y<y&&end.x<=x){
+//        //目标在自己的右上方或者上方，先看上边（x+1，y），再看右边(x,y-1)的格子
+//        if(isCanReach(up)){//向上
+//            cout << "move " << id << " " << 2;
+//            Map[x][y].robotId=-1;
+//            x--;
+//            Map[x][y].robotId=id;
+//            return;
+//        }
+//        else if(isCanReach(right)){//向右
+//            cout << "move " << id << " " << 0;
+//            Map[x][y].robotId=-1;
+//            y++;
+//            Map[x][y].robotId=id;
+//            return;
+//        }
+//        else if(isCanReach(left)) {//向左
+//            cout << "move " << id << " " << 1;
+//            Map[x][y].robotId=-1;
+//            y--;
+//            Map[x][y].robotId=id;
+//            return;
+//        }
+//        else if(isCanReach(down)){//向下
+//            cout << "move " << id << " " << 3;
+//            Map[x][y].robotId=-1;
+//            x++;
+//            Map[x][y].robotId=id;
+//            return;
+//        }
+//    }
+    Point start(x, y);
+    Astar astar;
     Point end(0,0);
     if(carryState==1){
-        end = findNearestBerthGrid(Point(x,y),Point(berths[targetBerth].x,berths[targetBerth].y));
+        end.x=berths[targetBerth].x;
+        end.y=berths[targetBerth].y;
     }
     else{
         end.x=targetCargo.first;
         end.y=targetCargo.second;
     }
-    auto* up=new Point(x-1,y);
-    auto* down=new Point(x+1,y);
-    auto* left=new Point(x,y-1);
-    auto* right=new Point(x,y+1);
-    if(end.x>=x&&end.y>y){
-        //目标在自己的右下方或者右方，先看右边（x，y+1），再看下边(x+1,y)的格�?
-        if(isCanReach(right)){//向右
-            cout << "move " << id << " " << 0;
-            Map[x][y].robotId=-1;
-            y++;
-            Map[x][y].robotId=id;
-        }
-        else if(isCanReach(down)){//向下
-            cout << "move " << id << " " << 3;
-            Map[x][y].robotId=-1;
-            x++;
-            Map[x][y].robotId=id;
-        }
-        else if(isCanReach(up)){//向上
-            cout << "move " << id << " " << 2;
-            Map[x][y].robotId=-1;
-            x--;
-            Map[x][y].robotId=id;
-        }
-        else if(isCanReach(left)) {//向左
-            cout << "move " << id << " " << 1;
-            Map[x][y].robotId=-1;
-            y--;
-            Map[x][y].robotId=id;
-        }
+    std::list<Point *> path = astar.GetPath(start, end);
+    auto it = path.begin();
+    std::advance(it, 1); // 将迭代器向前移动一个位置，即跳过第一个元素
+    Point* next = *it;
+    if(next->x-x==1){//向下
+        cout << "move " << id << " " << 3;
+        Map[x][y].robotId=-1;
+        x++;
+        Map[x][y].robotId=id;
     }
-    else if(end.y<=y&&end.x>x){
-        //目标在自己的左下方或者下方，先看下边（x+1，y），再看左边(x,y-1)的格�?
-        if(isCanReach(down)){//向下
-            cout << "move " << id << " " << 3;
-            Map[x][y].robotId=-1;
-            x++;
-            Map[x][y].robotId=id;
-        }
-        else if(isCanReach(left)) {//向左
-            cout << "move " << id << " " << 1;
-            Map[x][y].robotId=-1;
-            y--;
-            Map[x][y].robotId=id;
-        }
-        else if(isCanReach(right)){//向右
-            cout << "move " << id << " " << 0;
-            Map[x][y].robotId=-1;
-            y++;
-            Map[x][y].robotId=id;
-        }
-        else if(isCanReach(up)){//向上
-            cout << "move " << id << " " << 2;
-            Map[x][y].robotId=-1;
-            x--;
-            Map[x][y].robotId=id;
-        }
+    else if(next->x-x==-1){
+        cout << "move " << id << " " << 2;
+        Map[x][y].robotId=-1;
+        x--;
+        Map[x][y].robotId=id;
     }
-    else if(end.y<y&&end.x<=x){
-        //目标在自己的左上方或者左方，先看左边（x+1，y），再看上边(x,y-1)的格�?
-        if(isCanReach(left)) {//向左
-            cout << "move " << id << " " << 1;
-            Map[x][y].robotId=-1;
-            y--;
-            Map[x][y].robotId=id;
-        }
-        else if(isCanReach(up)){//向上
-            cout << "move " << id << " " << 2;
-            Map[x][y].robotId=-1;
-            x--;
-            Map[x][y].robotId=id;
-        }
-        else if(isCanReach(down)){//向下
-            cout << "move " << id << " " << 3;
-            Map[x][y].robotId=-1;
-            x++;
-            Map[x][y].robotId=id;
-        }
-        else if(isCanReach(right)){//向右
-            cout << "move " << id << " " << 0;
-            Map[x][y].robotId=-1;
-            y++;
-            Map[x][y].robotId=id;
-        }
+    else if(next->y-y==-1){
+        cout << "move " << id << " " << 1;
+        Map[x][y].robotId=-1;
+        y--;
+        Map[x][y].robotId=id;
     }
-    else if(end.y<y&&end.x<=x){
-        //目标在自己的右上方或者上方，先看上边（x+1，y），再看右边(x,y-1)的格�?
-        if(isCanReach(up)){//向上
-            cout << "move " << id << " " << 2;
-            Map[x][y].robotId=-1;
-            x--;
-            Map[x][y].robotId=id;
-        }
-        else if(isCanReach(right)){//向右
-            cout << "move " << id << " " << 0;
-            Map[x][y].robotId=-1;
-            y++;
-            Map[x][y].robotId=id;
-        }
-        else if(isCanReach(left)) {//向左
-            cout << "move " << id << " " << 1;
-            Map[x][y].robotId=-1;
-            y--;
-            Map[x][y].robotId=id;
-        }
-        else if(isCanReach(down)){//向下
-            cout << "move " << id << " " << 3;
-            Map[x][y].robotId=-1;
-            x++;
-            Map[x][y].robotId=id;
-        }
+    else if(next->y-y==1){
+        cout << "move " << id << " " << 0;
+        Map[x][y].robotId=-1;
+        y++;
+        Map[x][y].robotId=id;
     }
-//    Point start(x, y);
-//    Astar astar;
-//    Point end(0,0);
-//    if(carryState==1){
-//        end.x=berths[targetBerth].x;
-//        end.y=berths[targetBerth].y;
-//    }
-//    else{
-//        end.x=targetCargo.first;
-//        end.y=targetCargo.second;
-//    }
-//    std::list<Point *> path = astar.GetPath(start, end, false);
-//    std::list<Point*>::iterator it = path.begin();
-//    std::advance(it, 1); // 将迭代器向前移动一个位置，即跳过第一个元�?
-//    Point* next = *it;
-//    if(next->x-x==1){//向下
-//        cout << "move " << id << " " << 3;
-//        Map[x][y].robotId=-1;
-//        x++;
-//        Map[x][y].robotId=id;
-//    }
-//    else if(next->x-x==-1){
-//        cout << "move " << id << " " << 2;
-//        Map[x][y].robotId=-1;
-//        x--;
-//        Map[x][y].robotId=id;
-//    }
-//    else if(next->y-y==-1){
-//        cout << "move " << id << " " << 1;
-//        Map[x][y].robotId=-1;
-//        y--;
-//        Map[x][y].robotId=id;
-//    }
-//    else if(next->y-y==1){
-//        cout << "move " << id << " " << 0;
-//        Map[x][y].robotId=-1;
-//        y++;
-//        Map[x][y].robotId=id;
-//    }
 }
 
 class Boat{
@@ -642,6 +657,7 @@ void Boat::go() {
     cout<<"go "<<Boat::id<<endl;
 }
 
+
 void Berth::load() {
     if(waitingBoatNum>0){
         Boat* boat=&boats[boatsIn[0]];
@@ -686,38 +702,36 @@ void Init()
             j = nullptr;
         }
     }
-
     char line[N];
     for(auto & i : Map){
         scanf("%s", line); //地图输入
         //std::printf(line);
-        for(int j=0;j<n;j++){
+        for (int j = 0; j < n; j++)
             switch (line[j]) {
-                case 'B':{
-                    i[j].type='B';
+                case 'B': {
+                    i[j].type = 'B';
                     break;
                 }
-                case 'A':{
-                    i[j].type='A';
+                case 'A': {
+                    i[j].type = '.';
                     break;
                 }
-                case '.':{
-                    i[j].type='.';
+                case '.': {
+                    i[j].type = '.';
                     break;
                 }
-                case '*':{
-                    i[j].type='*';
+                case '*': {
+                    i[j].type = '*';
                     break;
                 }
-                case '#':{
-                    i[j].type='#';
+                case '#': {
+                    i[j].type = '#';
                     break;
                 }
-
-                default:break;
-
+                default:
+                    break;
             }
-        }
+
     }
 
 
@@ -730,7 +744,7 @@ void Init()
         scanf("%d%d%d%d", &berths[id].x, &berths[id].y, &berths[id].transport_time, &berths[id].loading_speed);
     }
 
-    //初始化船的属�?
+    //初始化船的属性
     scanf("%d", &boat_capacity); //船的容量
     for(int i=0;i<5;i++){
         boats[i].capacity=boat_capacity;
@@ -748,41 +762,25 @@ void Init()
 }
 
 int Input(){
-    scanf("%d%d", &id, &money); //帧序号，当前金钱�?
+    scanf("%d%d", &id, &money); //帧序号，当前金钱数
 
     int num; //新增的货物量
     scanf("%d", &num);
-    cargosum+=num;
     for(int i = 0; i < num; i ++)
     {
         int x,y,v;
         scanf("%d%d%d", &x,&y,&v);  //货物的坐标和金额
-        Cargo* car = new Cargo;
-        car->x=x;
-        car->y=y;
-        car->value=v;
-        car->time=1000;
-        cargos[x][y]=car;
+        cargos[x][y]->x=x;
+        cargos[x][y]->y=y;
+        cargos[x][y]->value=v;
+        cargos[x][y]->time=1000;
         //targetBerth的确定
-        cargos[x][y]->berthid = cargos[x][y]->findBerth();
     }
 
-    //遍历货物，生存时间减一
+    //这里需要遍历货物，生存时间减一，找泊位
 
-    for (auto & cargo : cargos)
-    {
-        for(auto & j : cargo){
-            if(j!=nullptr){
-                j->time--;
-                if(j->time<=0){
-                    delete j;
-                    cargosum--;
-                }
-            }
-        }
-    }
 
-    //接下�?10行robot数据
+    //接下来10行robot数据
     for(int i = 0; i < robot_num; i ++)
     {
         //是否携带物品，坐标，状态（恢复状态还是正常状态）
@@ -791,9 +789,9 @@ int Input(){
         Map[robots[i].x][robots[i].y].robotId=i;
     }
 
-    //接下�?5行boat数据
+    //接下来5行boat数据
     for(int i = 0; i < 5; i ++) {
-        //船的状态（运输中，正常状态，泊位外等待状态），目标泊�?
+        //船的状态（运输中，正常状态，泊位外等待状态），目标泊位
         scanf("%d%d\n", &boats[i].state, &boats[i].targetBerth);
     }
     char okk[100];
@@ -823,14 +821,17 @@ int main()
         std::vector<int> vec = {0,1,2,3,4,5,6,7,8,9};
         std::sort(vec.begin(), vec.end(), compareForRobot);
         for(auto robot:vec)
-            if(robots[robot].carryState==0)
-            robots[robot].findCargo();
+            if(robots[robot].carryState==0&&robots[robot].movingState==1)
+                robots[robot].findCargo();
         for(auto robot:vec)
-            robots[robot].planToGetOrPull();
+            if(robots[robot].movingState==1)
+                robots[robot].planToGetOrPull();
         for(auto robot:vec)
-            robots[robot].planToMove();
+            if(robots[robot].movingState==1)
+                robots[robot].planToMove();
         for(auto robot:vec)
-            robots[robot].planToGetOrPull();
+            if(robots[robot].movingState==1)
+                robots[robot].planToGetOrPull();
         //船舶指令
 
 

@@ -6,7 +6,15 @@
 # 3/11 17：00
 简单实现了boat和berth的运行（未调试过）
 ## Robot class
-
+```
+int id;
+int cargoValue;
+int x, y;
+int carryState;
+int targetBerth;
+pair<int,int> targetCargo;
+int movingState;
+```
 ```c++
 pair<int,int> Robot::findCargo();
 //结合货物价格、货物到泊位的距离和自身到货物的距离来综合选择

@@ -173,11 +173,11 @@ std::vector<Point *> Astar::getSurroundPoints(const Point *point) const
 class Cargo{
 public:
     int value;
-    int x, y, xb, yb; //xb,yb为目标泊位的坐标
+    int x, y; //xb,yb为目标泊位的坐标
     int time;
     int matched;
     int berthid;
-    Cargo():xb(-1),yb(-1),time(1000),berthid(-1),matched(0){}; //初始化泊位坐标为（-1，-1, 可存在时间为-1
+    Cargo():time(1000),berthid(-1),matched(0){}; //初始化泊位坐标为（-1，-1, 可存在时间为-1
 
     int findBerth();
 };
@@ -209,14 +209,21 @@ int Cargo::findBerth(){//evaluation function for each berth
     int b = 1;//loading time
     int c = 1;//berth time
     int d = 1;//todo:shipnum
+
     int result = 0;
-    int steps = 0;//pace to berth by robot plan
+    Point start(x, y);
+    Astar astar;
+    Point end(0,0);
+    std::list<Point *> path = astar.GetPath(start, end, false);
+
+    int steps = path.size();//pace to berth by robot plan
     int max = 0;
     int targetid = 0;
+
     for (size_t i = 0; i < berth_num; i++)
     {
         int loadtime = berths[i].cargoNum/berths[i].loading_speed;//todo:cargonum after steps
-
+//todo: whether there is a ship
         if(loadtime <= steps){
             result = a*steps+c*berths[i].transport_time;
         }else{
@@ -229,7 +236,6 @@ int Cargo::findBerth(){//evaluation function for each berth
         }
     }
     return targetid;
-
 }
 
 class Robot{
@@ -264,6 +270,7 @@ void Robot::get(){
         this->cargoValue = cargos[this->targetCargo.first][this->targetCargo.second]->value;
         this->carryState = 1;
         this->targetBerth = cargos[this->targetCargo.first][this->targetCargo.second]->berthid;
+        //if()check nullptr
         delete cargos[this->targetCargo.first][this->targetCargo.second];
 
     }else{
@@ -275,37 +282,12 @@ void Robot::get(){
 void Robot::pull(int id){
     berths[id].cargoNum++;
     berths[id].cargoVal+=cargoValue;
+
     this->cargoValue = 0;
     this->carryState = 0;
     this->targetBerth = -1;
+
     targetCargo={-1,-1};
-}
-
-void Robot::findCargo(){
-    //if robot has no cargo, calculate the targetCargo.Vice versa, just go to the targetBerth.
-    if(carryState==0){
-        //结合货物价格、货物到泊位的距离和自身到货物的距离来综合选择
-        int a=1;//货物value权重
-        int b=1;//货物距离权重
-        int c=1;//货物到泊位的距离权重
-        double maxCargoVal=INT_MIN;
-        for(int i=0;i<n;i++){
-            for(int j=0;j<n;j++){
-                if(cargos[i][j]!=nullptr&&cargos[i][j]->matched==0){
-                    int cargoToBerth = abs(cargos[i][j]->xb-cargos[i][j]->x) + abs(cargos[i][j]->yb-cargos[i][j]->y);
-                    int robotToCargo = abs(x-cargos[i][j]->x) + abs(y-cargos[i][j]->y);
-                    double val =(double)(a * cargos[i][j]->value) / (double)(c * cargoToBerth + b * robotToCargo);
-                    if(val > maxCargoVal){
-                        maxCargoVal = val;
-                        targetCargo.first = cargos[i][j]->x;
-                        targetCargo.second = cargos[i][j]->y;
-                    }
-                }
-            }
-        }
-        cargos[targetCargo.first][targetCargo.second]->matched=1;
-    }
-
 }
 
 Point findNearestBerthGrid(const Point& robot, const Point& berth) {
@@ -355,7 +337,35 @@ Point findNearestBerthGrid(const Point& robot, const Point& berth) {
     return nearestGrid;
 }
 
+void Robot::findCargo(){
+    //if robot has no cargo, calculate the targetCargo.Vice versa, just go to the targetBerth.
+    if(carryState==0){
+        //结合货物价格、货物到泊位的距离和自身到货物的距离来综合选择
+        int a=1;//货物value权重
+        int b=1;//货物距离权重
+        int c=1;//货物到泊位的距离权重
+        double maxCargoVal=INT_MIN;
+        for(int i=0;i<n;i++){
+            for(int j=0;j<n;j++){
+                if(cargos[i][j]!=nullptr&&cargos[i][j]->matched==0){
+                    Point p= findNearestBerthGrid(Point(x,y),Point(berths[targetBerth].x,berths[targetBerth].y));
+                    int cargoToBerth = abs(p.x-cargos[i][j]->x) + abs(p.y-cargos[i][j]->y);
+                    int robotToCargo = abs(x-cargos[i][j]->x) + abs(y-cargos[i][j]->y);
 
+                    double val =(double)(a * cargos[i][j]->value) / (double)(c * cargoToBerth + b * robotToCargo);
+
+                    if(val > maxCargoVal){
+                        maxCargoVal = val;
+                        targetCargo.first = cargos[i][j]->x;
+                        targetCargo.second = cargos[i][j]->y;
+                    }
+                }
+            }
+        }
+        cargos[targetCargo.first][targetCargo.second]->matched=1;
+    }
+
+}
 
 void Robot::planToGetOrPull() {
     //before move
@@ -363,6 +373,7 @@ void Robot::planToGetOrPull() {
     if(carryState==0&&x==targetCargo.first&&x==targetCargo.second){//手上没东西，且走到了目标货物的位置
         get();
         cout << "get " << id;
+        return;
     }
     if(carryState==1&&berths[targetBerth].x<=x&&x<=berths[targetBerth].x+3&&berths[targetBerth].y<=y&&y<=berths[targetBerth].y+3){
         //手上有东西而且走到了泊位的范围
@@ -545,7 +556,7 @@ public:
     int shippingTime;
     Boat():cargoNum(0),targetBerth(-1),state(1){};
 
-    void moveAFrame();
+    //void moveAFrame();
 
     void action();
 
@@ -555,19 +566,19 @@ public:
 
     double value(int,int,int,int);
 }boats[10];
-void Boat::moveAFrame() {
-    if(shippingTime>0){
-        shippingTime--;
-        if(shippingTime==0){
-            if(targetBerth>=0){ //到达泊位
-                berths[targetBerth].receive(Boat::id);
-            }
-            else{ //到达vp
-                //ship();
-            }
-        }
-    }
-}
+//void Boat::moveAFrame() {
+//    if(shippingTime>0){
+//        shippingTime--;
+//        if(shippingTime==0){
+//            if(targetBerth>=0){ //到达泊位
+//                berths[targetBerth].receive(Boat::id);
+//            }
+//            else{ //到达vp
+//                //ship();
+//            }
+//        }
+//    }
+//}
 
 void Boat::action() {
     if (state == 1) { //available
@@ -748,9 +759,11 @@ int Input(){
         cargos[x][y]->y=y;
         cargos[x][y]->value=v;
         cargos[x][y]->time=1000;
+        //targetBerth的确定
     }
 
     //这里需要遍历货物，生存时间减一，找泊位
+
 
     //接下来10行robot数据
     for(int i = 0; i < robot_num; i ++)
@@ -765,13 +778,7 @@ int Input(){
     for(int i = 0; i < 5; i ++) {
         //船的状态（运输中，正常状态，泊位外等待状态），目标泊位
         scanf("%d%d\n", &boats[i].state, &boats[i].targetBerth);
-        boats[i].action();
     }
-
-    for(int i = 0;i<10;i++){
-        berths[i].load();
-    }
-
     char okk[100];
     scanf("%s", okk);
     return id;
@@ -799,12 +806,24 @@ int main()
         std::vector<int> vec = {0,1,2,3,4,5,6,7,8,9};
         std::sort(vec.begin(), vec.end(), compareForRobot);
         for(auto robot:vec)
+            if(robots[robot].carryState==0)
+            robots[robot].findCargo();
+        for(auto robot:vec)
             robots[robot].planToGetOrPull();
         for(auto robot:vec)
             robots[robot].planToMove();
         for(auto robot:vec)
             robots[robot].planToGetOrPull();
         //船舶指令
+
+
+        for(int i=0;i<5;i++){
+            boats[i].action();
+        }
+        for(int i = 0;i<10;i++){
+            berths[i].load();
+        }
+
         //泊位装卸货物
         puts("OK");
         fflush(stdout);
